@@ -1,11 +1,16 @@
-/*
- * BlockUtility.h
- *
- * Created on: Jul 3, 2014
- *      Author: Joseph
- */
-
-#ifndef Block_Utility_H_
-#define Block_Utility_H_
-
-#endif /* Block_Utility_H_ */
+#define __BlockUtility_H_INCLUDED__   //   #define this so the compiler knows it has been included
+class BlockUtility
+{
+   public:
+        BlockUtility();
+        void conjugate(unsigned char *);
+        void setComplexityThreshold(float);
+        float getComplexityThreshold();
+        float getComplexity(unsigned char *);
+        int isComplex(unsigned char *);
+        void printBitPlane(unsigned char *);
+    private:
+        float threshold;
+        int x;
+        int y;
+};
