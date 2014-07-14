@@ -1,3 +1,10 @@
+/*
+ * BlockUtility.cpp
+ *
+ *  Created on: July 14, 2014
+ *      Author: Joseph Alvizo Mendoza
+ */
+
 #include "stdio.h"
 #include "BlockUtility.h"
 
@@ -195,4 +202,18 @@ unsigned char BlockUtility::getBitOfChar(unsigned char byte, int bit)
     unsigned char output;
     output = ((byte >> bit) & 0x01);
     return output;
+}
+
+// Embeds the block bit plane into the plane oof the valueBlock;
+void BlockUtility::embedIntoValueBlock(unsigned char valueBlock[8][8], unsigned char block[8], int plane)
+{
+    int x,y;
+    
+    for(x=0;x<8;x++)
+    {
+        for(y=0;y<8;y++)
+        {
+            valueBlock[x][y] = changeBitOfByte(valueBlock[x][y],plane,getBitOfChar(block[x],7-y));
+        }
+    }
 }
