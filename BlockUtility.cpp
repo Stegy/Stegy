@@ -145,3 +145,54 @@ void BlockUtility::printBitPlane(unsigned char * block)
         printf("\n");
     }
 }
+
+// Prints out the plane of 8x8 chars
+void BlockUtility::printValueBlock(unsigned char valueBlock[8][8])
+{
+    int x,y;
+    for(x=0;x<8;x++)
+    {
+        for(y=0;y<8;y++)
+        {
+            printf("%d ",valueBlock[x][y]);
+        }
+        printf("\n");
+    }
+}
+
+// Changes a array of 8x8 char to an array of 8 chars that represent the bit plane
+// depending on the plane(int plane) is choosen
+void BlockUtility::valueToCharArray(unsigned char valueBlock[8][8],unsigned char * byte,int plane)
+{
+    int x;
+    int y;
+    for(x = 0;x < 8;x++)
+    {
+        for(y = 0; y < 8;y++)
+        {
+            byte[x] = changeBitOfByte(byte[x],y,getBitOfChar(valueBlock[x][7-y], plane));
+        }
+    }
+}
+
+
+// Changes the bit in a byte to the value
+unsigned char BlockUtility::changeBitOfByte(unsigned char byte, int bit, int value)
+{
+    unsigned char output = byte;
+    if(value)
+        output |= 1 << bit;
+    else
+        output &= ~(1 << bit);
+    
+    return output;
+}
+
+
+// Returns the value of a bit from the char.
+unsigned char BlockUtility::getBitOfChar(unsigned char byte, int bit)
+{
+    unsigned char output;
+    output = ((byte >> bit) & 0x01);
+    return output;
+}
