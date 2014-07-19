@@ -8,6 +8,7 @@
 #ifndef MESSAGEREADER_H_
 #define MESSAGEREADER_H_
 
+#include "BlockUtility.h"
 #include "StegoCommon.h"
 
 #include <stdint.h>
@@ -44,18 +45,20 @@ private:
 	int mapIndex;
 	MapBlock* map;
 	int numMapBlocks;
+	BlockUtility* utility;
 //	const int kBlockSize = 8;
 
 	void buildMap();
 
 public:
-	MessageReader(string fileName);
-	unsigned char* getHeader();
+	MessageReader(string fileName, BlockUtility* utility);
+	void getSizeBlock(unsigned char* result);
 	unsigned char* getNext();
 	int getNumMapBlocks();
 	int getNext(int size, unsigned char* buffer);
 	void setMapBit(int blockNumber, bool value);
 	MapBlock getNextMapBlock();
+	int getSize();
 
 };
 

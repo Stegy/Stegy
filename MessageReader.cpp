@@ -13,7 +13,7 @@
 
 using namespace std;
 
-MessageReader::MessageReader(string fileName) {
+MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 	std::ifstream input(fileName, std::ios::in|std::ios::binary);
 	if (!input.is_open()) {
 		cout << "failed to open file for reading" << endl;
@@ -27,6 +27,7 @@ MessageReader::MessageReader(string fileName) {
 	input.getline((char*) fileBuffer, size); // TODO Okay for unsigned conversion?
 	messageIndex = 0;
 	mapIndex = 0;
+	this->utility = utility;
 	buildMap();
 }
 
@@ -35,8 +36,8 @@ MessageReader::MessageReader(string fileName) {
  * of the first byte in the array is initially set to 0, and should be used as
  * a conjugation bit.
  */
-unsigned char* MessageReader::getHeader() {
-	unsigned char* result = new unsigned char[kBlockSize];
+void MessageReader::getSizeBlock(unsigned char* result) {
+//	unsigned char* result = new unsigned char[kBlockSize];
 	// TODO, check if over max size
 	result[0] = (size & 0x7F00000000000000) >> 56; // 7 bytes
 	uint64_t mask = 0x00FF000000000000;
@@ -46,7 +47,9 @@ unsigned char* MessageReader::getHeader() {
 		mask >>= 8;
 		shiftAmt -= 8;
 	}
-	return result;
+	if (utility->isComplex(result)) {
+		utility->conjugate(result);
+	}
 }
 
 /**
@@ -71,7 +74,6 @@ void MessageReader::buildMap() {
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	int readSize = kBlockSize - map[i].fullTo;
 	if (readSize > 0) {
-		cout << "Reading" << endl;
 //		int offset = map[i].fullTo;
 		unsigned char tempBuf[readSize];
 		int res = getNext(readSize, tempBuf);
@@ -102,13 +104,16 @@ int MessageReader::getNumMapBlocks() {
 	return numMapBlocks;
 }
 
+int MessageReader::getSize() {
+	return size;
+}
+
 /**
  * Gets the next readSize bytes from the message, if possible, and adds them
  * to the passed buffer. Returns the number of bytes read into the buffer.
  */
 int MessageReader::getNext(int readSize, unsigned char* readBuffer) {
 	int i;
-	cout << "in reader, readsize = " << readSize << endl;
 	for (i = 0; i < readSize && messageIndex < size; i++) {
 		readBuffer[i] = fileBuffer[messageIndex++];
 	}

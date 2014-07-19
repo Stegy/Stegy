@@ -86,54 +86,58 @@ float BlockUtility::getComplexity(unsigned char * block)
 // Returns if complexity of a group of 8 unsigned chars
 // is higher then the threshold
 // Using the boarder complexity measurmant
-int BlockUtility::isComplex(unsigned char * block)
+bool BlockUtility::isComplex(unsigned char * block)
 {
-    int intBlock[8][8];
-    unsigned char current;
-    unsigned char last;
-    unsigned int totalChanges;
-    unsigned int maxTotalChanges;
-    float complexity;
-    
-    
-    //checking for the number of changes
-    for(x=1;x<8;x++)//in the x direction
-    {
-        for(y=0;y<8;y++)
-        {
-            current = intBlock[x][y];
-            last = intBlock[x-1][y];
-            if(last!=current)
-            {
-                totalChanges++;
-            }
-            maxTotalChanges++;
-        }
-    }
-    
-    //checking for the number of changes
-    for(y=1;y<8;y++)//in the y direction
-    {
-        for(x=0;x<8;x++)
-        {
-            current = intBlock[x][y];
-            last = intBlock[x][y-1];
-            if(last!=current)
-            {
-                totalChanges++;
-            }
-            maxTotalChanges++;
-        }
-    }
-    complexity = (float)totalChanges/(float)maxTotalChanges;
-    if(complexity>=threshold)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+////    int intBlock[8][8];
+//    unsigned char current;
+//    unsigned char last;
+//    unsigned int totalChanges;
+//    unsigned int maxTotalChanges;
+//    float complexity;
+//
+//
+//    //checking for the number of changes
+//    for(x=1;x<8;x++)//in the x direction
+//    {
+//        for(y=0;y<8;y++)
+//        {
+//        	current = getBitOfChar(block[x], y);
+////            current = intBlock[x][y];
+//        	last = getBitOfChar(block[x-1], y);
+////            last = intBlock[x-1][y];
+//            if(last!=current)
+//            {
+//                totalChanges++;
+//            }
+//            maxTotalChanges++;
+//        }
+//    }
+//
+//    //checking for the number of changes
+//    for(y=1;y<8;y++)//in the y direction
+//    {
+//        for(x=0;x<8;x++)
+//        {
+//        	//            current = intBlock[x][y];
+//        	current = getBitOfChar(block[x], y);
+//        	//            last = intBlock[x][y-1];
+//        	current = getBitOfChar(block[x-1], y);
+//        	if(last!=current)
+//            {
+//                totalChanges++;
+//            }
+//            maxTotalChanges++;
+//        }
+//    }
+    float complexity = getComplexity(block);
+    return (complexity >= threshold);
+//    {
+//        return true;
+//    }
+//    else
+//    {
+//        return 0;
+//    }
 }
 
 // Returns a checkerboard pattern xored with the 8 unsigned chars
@@ -226,7 +230,7 @@ unsigned char BlockUtility::getBitOfChar(unsigned char byte, int bit)
 }
 
 // Embeds the block bit plane into the plane oof the valueBlock;
-void BlockUtility::embedIntoValueBlock(unsigned char valueBlock[8][8], unsigned char block[8], int plane)
+void BlockUtility::embedBitPlane(unsigned char valueBlock[8][8], unsigned char block[8], int plane)
 {
     int x,y;
     

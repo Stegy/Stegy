@@ -76,6 +76,6 @@ int main()
     printf("Message to be inbedded:\n");
     Utility.printBitPlane(testBlock);
     printf("Now with message embedded in the cover:\n");
-    Utility.embedIntoValueBlock(valueBlock, testBlock, 2);
+    Utility.embedBitPlane(valueBlock, testBlock, 2);
     Utility.printValueBlock(valueBlock);
 }
