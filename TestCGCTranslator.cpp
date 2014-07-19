@@ -79,6 +79,34 @@ void testBinaryToCgc(CGCTranslator tester) {
 	}
 }
 
+unsigned char toCGC[256];
+unsigned char toPBC[256];
+
+// TEMP
+// this function builds the canonical gray code array variables
+void buildGrayCode()
+{
+	int i, length, posUp, posDw, cnt;
+
+	length = 1;
+	toCGC[0] = 0;
+	toPBC[0] = 0;
+	cnt = 1;
+
+	while(length < 256)
+	{
+		posUp = length - 1;
+		posDw = length;
+		for(i = 0; i < length; i++)
+		{
+			toCGC[i + posDw] = toCGC[posUp - i] + length;
+			toPBC[toCGC[i + posDw]] = cnt++;
+		}
+		length = length * 2;
+	}
+	return;
+} // buildGrayCode
+
 int main() {
 	CGCTranslator tester;
 	tester.printGrayCode();

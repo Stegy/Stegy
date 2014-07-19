@@ -17,7 +17,7 @@ class BlockUtility
         int isComplex(unsigned char *);
         void printBitPlane(unsigned char *);
         void printValueBlock(unsigned char[8][8]);
-        void valueToCharArray(unsigned char[8][8],unsigned char[8], int);
+        void extractBitPlane(unsigned char[8][8],unsigned char[8], int);
         unsigned char changeBitOfByte(unsigned char, int , int);
         unsigned char getBitOfChar(unsigned char, int);
         void embedIntoValueBlock(unsigned char[8][8], unsigned char[8], int);

@@ -29,6 +29,12 @@ int main()
     printf("Is complex: %d\n",isComplex);
     printf("Complexity: %0.3f\n",complexity);
     
+    cout << "TEST ZEROES" << endl;
+    unsigned char testZeroes[8] = {0};
+    Utility.printBitPlane(testZeroes);
+    float alpha = Utility.getComplexity(testZeroes);
+    cout << "Complexity: " << alpha << endl;
+
     printf("\n\nAfter conjugation\n");
     Utility.conjugate(block);
     Utility.printBitPlane(block);
@@ -56,7 +62,7 @@ int main()
     Utility.printValueBlock(valueBlock);
     for(x=0;x<8;x++)
     {
-        Utility.valueToCharArray(valueBlock,block, x);
+        Utility.extractBitPlane(valueBlock,block, x);
         printf("Bit Plane %d:\n",x);
         Utility.printBitPlane(block);  
     }

@@ -17,7 +17,7 @@ OPTIONS       = -ansi -pedantic-errors -Wall -Wall -Werror -Wextra -o
 LINKER_OPT    = -L/usr/lib -lstdc++
 OUTPUT_DIR    = bin
 
-all: bitmap_test example cgc_translator_test
+all: bitmap_test example cgc_translator_test message_manager_test
 
 bitmap_test: bitmap_test.cpp bitmap_image.hpp
 	$(COMPILER) $(OPTIONS) $(OUTPUT_DIR)/bitmap_test bitmap_test.cpp $(LINKER_OPT)
@@ -33,6 +33,18 @@ TestCGCTranslator.o : TestCGCTranslator.cpp CGCTranslator.h
 	
 cgc_translator_test: CGCTranslator.o TestCGCTranslator.o
 	$(COMPILER) -g CGCTranslator.o TestCGCTranslator.o $(LINKER_OPT) -lm -o $(OUTPUT_DIR)/TestCGCTranslator
+	
+MessageReader.o: MessageReader.cpp MessageReader.h StegoCommon.h
+	$(COMPILER) -Wall -g -c MessageReader.cpp
+	
+MessageWriter.o: MessageWriter.cpp MessageWriter.h StegoCommon.h
+	$(COMPILER) -Wall -g -c MessageWriter.cpp
+	
+MessageManagerTest.o: MessageManagerTest.cpp MessageReader.h
+	$(COMPILER) -Wall -g -c MessageManagerTest.cpp
+	
+message_manager_test: MessageManagerTest.o MessageReader.o MessageWriter.o
+	$(COMPILER) -g MessageReader.o MessageWriter.o MessageManagerTest.o $(LINKER_OPT) -lm -o $(OUTPUT_DIR)/MessageManagerTest
 
 valgrind_check:
 	valgrind --leak-check=full --show-reachable=yes --track-origins=yes -v ./bitmap_test

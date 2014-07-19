@@ -1,7 +1,11 @@
-#include <stdio.h>
-#include <string.h>
-#include <string>
+#include "bitmap_image.hpp"
+#include "BlockUtility.h"
+#include "StegoCommon.h"
+
 #include <iostream>
+#include <stdio.h>
+#include <string>
+#include <string.h>
 
 using namespace std;
 
@@ -18,19 +22,27 @@ string coverFileName = "";
 string messageFileName = "";
 string stegoFileName = "";
 string outputFileName = "";
+BlockUtility* utility;
 
 void verifyArguments(int argc, char* argv[]);
+void encode();
 
 int main(int argc, char* argv[])
 {
     verifyArguments(argc, argv);
+    utility = new BlockUtility();
+    utility->setComplexityThreshold(complexityTH);
+    encode();
 }
 
 void verifyArguments(int argc, char* argv[])
 {
-    string usage = "Stegy < -a | -e | -d >  -c alpha  < -red | -green | -blue | -all > < -stego StegoImage | -cover CoverImage > < -messgae Message > -o OutputFileName";
-    
-    //Checking the perimeters
+    string usage =  "Stegy -a -c alpha  < -red | -green | -blue | -all >"
+    		"-cover CoverImage\nStegy -e -c alpha  < -red | -green | -blue |"
+    		"-all > -cover CoverImage -messgae Message -o OutputFileName\nStegy"
+    		"-d -c alpha  < -red | -green | -blue | -all > -stego StegoImage"
+    		"-o OutputFileName\n";
+
     if(argc < 5)
     {
         cout << "Usage : " << usage << endl;
@@ -62,7 +74,7 @@ void verifyArguments(int argc, char* argv[])
             {
                 complexityTH = stof(argv[i+1]);
             }
-            catch(int e)
+            catch(...)
             {
                 cout << "Invalid Complexity : " << argv[i+1] << endl;
                 exit(1);
@@ -157,4 +169,48 @@ void verifyArguments(int argc, char* argv[])
         cout << "Need proper file names\n"<< usage << endl;
         exit(1);
     }
+}
+
+void encode() {
+	// Open bitmap file
+   bitmap_image cover(coverFileName);
+
+   if (!cover)
+   {
+	  cout << "Error: Unable to open cover image file: "
+			  << coverFileName << endl;
+	  exit(1);
+   }
+   // traverse lowest bitplane
+   unsigned char red;
+   unsigned char green;
+   unsigned char blue;
+   unsigned char pixelBlock[kBlockSize][kBlockSize];
+   int bitPlane = 0;
+   int count = 0;
+   for (int x = 0; x <= cover.width() - kBlockSize; x += kBlockSize) {
+	   for (int y = 0; y <= cover.height() - kBlockSize; y += kBlockSize) {
+		   for (size_t i = x; i < x + kBlockSize; i++) {
+			   for (size_t j = y; j < y + kBlockSize; j++) {
+				   cover.get_pixel(i, j, red, green, blue);
+				   pixelBlock[i][j] = red;
+//				   cout << "i: " << i << " J: " << j << endl;
+//				   cout << "color values: red: " << (int)  red << " green: " << (int) green
+//						   << "blue: " << (int )blue << endl;
+			   }
+		   }
+		   unsigned char block[kBlockSize];
+		   utility->extractBitPlane(pixelBlock, block, bitPlane);
+		   float alpha = utility->getComplexity(block);
+		   cout << "complexity: " << alpha << endl;
+		   if (alpha > complexityTH) {
+			   cout << "found complex" << endl;
+			   cout << "alpha: " << alpha << endl;
+			   utility->printBitPlane(block);
+		   }
+	   }
+	   count++;
+	   cout << "loop: " << count << endl;
+   }
+
 }

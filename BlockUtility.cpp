@@ -8,6 +8,10 @@
 #include "stdio.h"
 #include "BlockUtility.h"
 
+#include <iostream>
+
+using namespace std;
+
 // BlockUtility constructor
 BlockUtility::BlockUtility()
 {
@@ -30,7 +34,11 @@ float BlockUtility::getComplexityThreshold()
 // Using the boarder complexity measurmant
 float BlockUtility::getComplexity(unsigned char * block)
 {
-    int intBlock[8][8];
+//    int intBlock[8][8];
+//    bitset<8> blockBits[8];
+//    for (int i = 0; i < 8; i++) {
+//    	blockBits[i]
+//    }
     unsigned char current;
     unsigned char last;
     unsigned int totalChanges = 0;
@@ -39,13 +47,15 @@ float BlockUtility::getComplexity(unsigned char * block)
     
     
     //checking for the number of changes
-    for(x=1;x<8;x++)//in the x direction
+    for(x = 1; x < 8; x++)//in the x direction
     {
-        for(y=0;y<8;y++)
+        for(y = 0; y < 8; y++)
         {
-            current = intBlock[x][y];
-            last = intBlock[x-1][y];
-            if(last!=current)
+        	current = getBitOfChar(block[x], y);
+//            current = intBlock[x][y];
+        	last = getBitOfChar(block[x-1], y);
+//            last = intBlock[x-1][y];
+            if(last != current)
             {
                 totalChanges++;
             }
@@ -54,12 +64,14 @@ float BlockUtility::getComplexity(unsigned char * block)
     }
     
     //checking for the number of changes
-    for(y=1;y<8;y++)//in the y direction
+    for(y=1; y<8; y++)//in the y direction
     {
         for(x=0;x<8;x++)
         {
-            current = intBlock[x][y];
-            last = intBlock[x][y-1];
+//            current = intBlock[x][y];
+        	current = getBitOfChar(block[x], y);
+//            last = intBlock[x][y-1];
+        	current = getBitOfChar(block[x-1], y);
             if(last!=current)
             {
                 totalChanges++;
@@ -67,7 +79,7 @@ float BlockUtility::getComplexity(unsigned char * block)
             maxTotalChanges++;
         }
     }
-    complexity = (float)totalChanges/(float)maxTotalChanges;
+    complexity = (float) totalChanges / (float) maxTotalChanges;
     return complexity;
 }
 
@@ -151,6 +163,13 @@ void BlockUtility::printBitPlane(unsigned char * block)
         }
         printf("\n");
     }
+
+    cout << "USING BIT SETS:" << endl;
+    for (int i = 0; i < 8; i++ ) {
+    	bitset<8> x(block[i]);
+    	cout << x << endl;
+    }
+
 }
 
 // Prints out the plane of 8x8 chars
@@ -169,15 +188,17 @@ void BlockUtility::printValueBlock(unsigned char valueBlock[8][8])
 
 // Changes a array of 8x8 char to an array of 8 chars that represent the bit plane
 // depending on the plane(int plane) is choosen
-void BlockUtility::valueToCharArray(unsigned char valueBlock[8][8],unsigned char * byte,int plane)
+void BlockUtility::extractBitPlane(unsigned char valueBlock[8][8],
+		unsigned char * byte, int plane)
 {
     int x;
     int y;
-    for(x = 0;x < 8;x++)
+    for(x = 0; x < 8; x++)
     {
-        for(y = 0; y < 8;y++)
+        for(y = 0; y < 8; y++)
         {
-            byte[x] = changeBitOfByte(byte[x],y,getBitOfChar(valueBlock[x][7-y], plane));
+            byte[x] = changeBitOfByte(byte[x], y,
+            		getBitOfChar(valueBlock[x][7-y], plane));
         }
     }
 }
