@@ -186,20 +186,17 @@ void encode() {
    unsigned char green;
    unsigned char blue;
    unsigned char pixelBlock[kBlockSize][kBlockSize];
+   unsigned char block[kBlockSize];
    int bitPlane = 0;
-   int count = 0;
+   cover.get_pixel(7, 60, red, green, blue);
    for (int x = 0; x <= cover.width() - kBlockSize; x += kBlockSize) {
-	   for (int y = 0; y <= cover.height() - kBlockSize; y += kBlockSize) {
-		   for (size_t i = x; i < x + kBlockSize; i++) {
-			   for (size_t j = y; j < y + kBlockSize; j++) {
-				   cover.get_pixel(i, j, red, green, blue);
+	   for (int y = 0; y < cover.height() - kBlockSize; y += kBlockSize) {
+		   for (size_t i = 0; i < kBlockSize; i++) {
+			   for (size_t j = 0; j < kBlockSize; j++) {
+				   cover.get_pixel(x + i, y + j, red, green, blue);
 				   pixelBlock[i][j] = red;
-//				   cout << "i: " << i << " J: " << j << endl;
-//				   cout << "color values: red: " << (int)  red << " green: " << (int) green
-//						   << "blue: " << (int )blue << endl;
 			   }
 		   }
-		   unsigned char block[kBlockSize];
 		   utility->extractBitPlane(pixelBlock, block, bitPlane);
 		   float alpha = utility->getComplexity(block);
 		   cout << "complexity: " << alpha << endl;
@@ -209,8 +206,6 @@ void encode() {
 			   utility->printBitPlane(block);
 		   }
 	   }
-	   count++;
-	   cout << "loop: " << count << endl;
    }
 
 }
