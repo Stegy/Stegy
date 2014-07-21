@@ -2,6 +2,7 @@
 #include "BlockUtility.h"
 #include "CGCTranslator.h"
 #include "MessageReader.h"
+#include "MessageWriter.h"
 #include "StegoCommon.h"
 
 #include <iostream>
@@ -12,8 +13,7 @@
 
 using namespace std;
 
-
-/* Input perimeters*/
+/* Command line arguments */
 bool analysisFlag = false;
 bool encodeFlag = false;
 bool decodeFlag = false;
@@ -26,30 +26,47 @@ string coverFileName = "";
 string messageFileName = "";
 string stegoFileName = "";
 string outputFileName = "";
-BlockUtility* utility;
-MessageReader* reader;
-CGCTranslator* cgc;
-int blockIndex = 0;
-int messageSize = 0;
 
+/* Global variables */
+BlockUtility* utility; // Used to test complexity and conjugate blocks
+MessageReader* reader; // Used to read secret message for embedding
+MessageWriter* writer; // Used to write secret message when decoding
+CGCTranslator* cgc; // Translates bytes between PBC and CGC
+
+int blockIndex = 0; // Current block index for embedding/decoding
+//int messageSize = 0; // Size of secret message
+bool sizeFound = false;
+int numMapBlocks = -1;
+int mapBlocksFound = 0;
+
+/* Used as constants for red, green, and blue */
 int kRed = 0;
 int kGreen = 1;
 int kBlue = 2;
 
+/* Used to reserve space for map blocks when embedding */
 struct MapBlockCoords {
 	pair<int, int> pixelCorner;
 	int bitPlane;
 	int color;
 };
-
-vector<MapBlockCoords *> mapBlockCoords;
+vector<MapBlockCoords> mapBlockCoords;
 
 void verifyArguments(int argc, char* argv[]);
 void encode();
 void decode();
 bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image);
+bool traverseBitPlaneDecode(int bitPlane, int color, bitmap_image* image);
 void imageToCGC(bitmap_image* image);
 void imageToPBC(bitmap_image* image);
+void embedMapBlocks(bitmap_image* image);
+void readPixelBlock(bitmap_image* image, unsigned char redValues[8][8],
+		unsigned char blueValues[8][8], unsigned char greenValues[8][8],
+		int startX, int startY);
+void writePixelBlock(bitmap_image* image, unsigned char redValues[8][8],
+		unsigned char greenValues[8][8], unsigned char blueValues[8][8],
+		int startX, int startY);
+
 
 int main(int argc, char* argv[])
 {
@@ -203,7 +220,6 @@ void verifyArguments(int argc, char* argv[])
 void encode() {
 	// Open bitmap file
    bitmap_image cover(coverFileName);
-
    if (!cover)
    {
 	  cout << "Error: Unable to open cover image file: "
@@ -213,13 +229,11 @@ void encode() {
    // Open message file
    reader = new MessageReader(messageFileName, utility);
    // TODO handle errors
-//   int size = reader->getSize();
-//   cout << "found size" << size << endl;
 
-   // Translate image from BPC to CGC
+   // Translate cover image from BPC to CGC
    imageToCGC(&cover);
 
-   // Traverse bit planes from lowest to highest
+   // Traverse bit planes from lowest to highest and embed message
    bool done = false;
    for (int i = 0; i < 8 && !done; i++) {
 	   if (redFlag || allFlag) {
@@ -232,93 +246,43 @@ void encode() {
 		   done = traverseBitPlaneEmbed(i, kBlue, &cover);
 	   }
    }
-
+   // Embed the completed map blocks in the image
+   embedMapBlocks(&cover);
+   // Translate image back to PBC
    imageToPBC(&cover);
-
-   // Write bitmap with embedded data to file
+   // Write bitmap with embedded data (the stego image) to file
    cover.save_image(outputFileName);
-
-   // traverse lowest bitplane - goes through 1 bitplane of 1 color
-//   unsigned char red;
-//   unsigned char green;
-//   unsigned char blue;
-//   int color = kRed;
-//   unsigned char pixelBlock[kBlockSize][kBlockSize];
-//   unsigned char block[kBlockSize];
-//   int bitPlane = 0;
-//   for (int x = 0; x <= cover.width() - kBlockSize; x += kBlockSize) {
-//	   for (int y = 0; y < cover.height() - kBlockSize; y += kBlockSize) {
-//		   for (size_t i = 0; i < kBlockSize; i++) {
-//			   for (size_t j = 0; j < kBlockSize; j++) {
-//				   cover.get_pixel(x + i, y + j, red, green, blue);
-//				   pixelBlock[i][j] = red;
-//			   }
-//		   }
-//		   utility->extractBitPlane(pixelBlock, block, bitPlane);
-//		   float alpha = utility->getComplexity(block);
-//		   if (utility->isComplex(block)) {
-//			   // Complex block found
-//			   if (blockIndex > 0 && blockIndex <= reader->getNumMapBlocks()) {
-//				   MapBlockCoords mbc;
-//				   mbc.pixelCorner.first = x;
-//				   mbc.pixelCorner.second = y;
-//				   mbc.bitPlane = bitPlane;
-//				   mbc.color = color;
-//				   mapBlockCoords.push_back(&mbc);
-//			   } else {
-//				   if (blockIndex == 0) {
-//					   reader->getHeader(block);
-//				   }  else {
-//					   // Normal message block
-//					   reader->getNext(kBlockSize, block);
-//					   if (utility->getComplexity(block) < complexityTH) {
-//						   utility->conjugate(block);
-//						   reader->setMapBit(blockIndex, true);
-//					   }
-//				   }
-//				   utility->embedBitPlane(pixelBlock, block, bitPlane);
-//				   for (size_t i = 0; i < kBlockSize; i++) {
-//					   for (size_t j = 0; j < kBlockSize; j++) {
-//						   cover.set_pixel(x + i, y + j, pixelBlock[i][j],
-//								   green, blue);
-//					   }
-//				   }
-//			   }
-//			   blockIndex++;
-//		   }
-//	   }
-//   }
 }
 
 // Returns whether message ended
 bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
-   unsigned char red; // Red value of pixel
-   unsigned char green; // Green value of pixel
-   unsigned char blue; // Blue value of pixel
-   // 8x8 block of single color value
-   unsigned char pixelBlock[kBlockSize][kBlockSize];
-   unsigned char block[kBlockSize]; // 8x8 block from a bit plane
+   unsigned char red; // Red value of single pixel
+   unsigned char green; // Green value of single pixel
+   unsigned char blue; // Blue value of single pixel
+   // Color values for 8x8 pixel blocks
+   unsigned char redPixelValues[kBlockSize][kBlockSize];
+   unsigned char greenPixelValues[kBlockSize][kBlockSize];
+   unsigned char bluePixelValues[kBlockSize][kBlockSize];
+   // 8x8 block from a single bit plane
+   unsigned char block[kBlockSize];
    // Traverse image pixels
-   for (int x = 0; x <= image->width() - kBlockSize; x += kBlockSize) {
-	   for (int y = 0; y < image->height() - kBlockSize; y += kBlockSize) {
-		   // Get color values for 8x8 pixel block
-		   for (size_t i = 0; i < kBlockSize; i++) {
-			   for (size_t j = 0; j < kBlockSize; j++) {
-				   image->get_pixel(x + i, y + j, red, green, blue);
-				   if (color == kRed) {
-//					   pixelBlock[i][j] = cgc->binaryToCgc(red);
-					   pixelBlock[i][j] = red;
-				   } else if (color == kGreen) {
-					   pixelBlock[i][j] = green;
-				   } else {
-					   pixelBlock[i][j] = blue;
-				   }
-			   }
-		   }
+   int width = image->width();
+   int height = image->height();
+   for (int x = 0; x <= width - kBlockSize; x += kBlockSize) {
+	   for (int y = 0; y < height - kBlockSize; y += kBlockSize) {
+		   // Get color values for 8x8 pixel blocks
+		   readPixelBlock(image, redPixelValues, greenPixelValues,
+				   bluePixelValues, x, y);
 		   // Get desired bit plane
-		   utility->extractBitPlane(pixelBlock, block, bitPlane);
+		   if (redFlag) {
+			   utility->extractBitPlane(redPixelValues, block, bitPlane);
+		   } else if (greenFlag) {
+			   utility->extractBitPlane(greenPixelValues, block, bitPlane);
+		   } else {
+			   utility->extractBitPlane(bluePixelValues, block, bitPlane);
+		   }
 		   if (utility->isComplex(block)) {
-			   if (blockIndex > 0 && blockIndex <= reader->getNumMapBlocks()) {
+			   if (sizeFound && (mapBlocksFound < numMapBlocks)) {
 				   // Reserve space for map blocks
 				   // Applies to complex blocks 1 -> number of map blocks
 				   MapBlockCoords mbc;
@@ -326,62 +290,119 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 				   mbc.pixelCorner.second = y;
 				   mbc.bitPlane = bitPlane;
 				   mbc.color = color;
-				   mapBlockCoords.push_back(&mbc);
+				   mapBlockCoords.push_back(mbc);
+				   cout << "Saved map block: x: " << x << ", y: " << y << endl;
+				   mapBlocksFound++;
 			   } else {
-				   if (blockIndex == 0) {
+				   if (!sizeFound) {
 					   // First block to embed in - will embed the size block
 					   reader->getSizeBlock(block);
+					   numMapBlocks = reader->getNumMapBlocks();
+					   sizeFound = true;
 				   }  else {
 					   // Will embed a normal message block
-					   int bytesRead = reader->getNext(kBlockSize, block);
-					   if (bytesRead == 0) {
-						   cout << "Done with message, size: " << messageSize << endl;
+					   bool done = reader->getNext(kBlockSize, block);
+					   if (done) {
+						   cout << "Done with message, size: "
+								   << reader->getSize() << endl;
 						   cout << "bitplane: " << bitPlane << endl;
 						   return true;
 					   }
-					   messageSize += bytesRead;
 					   // Conjugate block if necessary, setting map value
 					   if (!utility->isComplex(block)) {
 						   utility->conjugate(block);
 						   reader->setMapBit(blockIndex, true);
 					   }
+					   blockIndex++;
+				   }
+				   // TODO temp
+				   if (blockIndex == 4) {
+					   cout << "Embedding message block at " << x << ",  " << y << endl;
+					   utility->printBitPlane(block);
 				   }
 				   // Modify the current block of color values to contain the
 				   // secret block
-				   utility->embedBitPlane(pixelBlock, block, bitPlane);
-				   // Set the updated pixel data in the bitmap image
+				   utility->embedBitPlane(redPixelValues, block, bitPlane);
+				   // Set the color values in the 8x8 pixel block of the bitmap
 				   for (size_t i = 0; i < kBlockSize; i++) {
 					   for (size_t j = 0; j < kBlockSize; j++) {
 						   image->set_pixel(x + i, y + j,
-//								   cgc->cgcToBinary(pixelBlock[i][j]),
-								   pixelBlock[i][j],
-								   green, blue);
+								   redPixelValues[i][j],
+								   greenPixelValues[i][j],
+								   bluePixelValues[i][j]);
 					   }
 				   }
 			   }
-			   blockIndex++;
 		   }
 	   }
    }
    cout << "finished bit plane : " << bitPlane << endl;
    return false;
 }
-//
-//bool findNextComplex(unsigned char* block, bitmap_image* image) {
-//	static int lastX = 0;
-//	static int lastY = 0;unsigned char pixelBlock[kBlockSize][kBlockSize];
-//	for (int x = lastX; x <= image->width() - kBlockSize; x += kBlockSize) {
-//	   for (int y = lastY; y < image->height() - kBlockSize; y += kBlockSize) {
-//		   for (int i = 0; i < kBlockSize; i++) {
-//			   for (int j = 0; j < kBlockSize; j++) {
-//				   image->get_pixel(x + i, y + j, red, green, blue);
-//				   pixelBlock[i][j] = red;
-//			   }
-//		   }
-//		   utility->extractBitPlane(pixelBlock, block, bitPlane);
-//		   if (utility->isComplex(block)) {
-//
-//}
+
+void embedMapBlocks(bitmap_image* image) {
+	// Color values for 8x8 pixel blocks
+	unsigned char redPixelValues[kBlockSize][kBlockSize];
+	unsigned char greenPixelValues[kBlockSize][kBlockSize];
+	unsigned char bluePixelValues[kBlockSize][kBlockSize];
+	unsigned char block[kBlockSize];
+	cout << "Starting map blocks" << endl;
+	for (int i = 0; i < mapBlockCoords.size(); i++) {
+		MapBlockCoords mbc = mapBlockCoords[i];
+		int x = mbc.pixelCorner.first;
+		int y = mbc.pixelCorner.second;
+		cout << "x: " << x << ", y: " << y << endl;
+		// Read pixel block at correct location
+		readPixelBlock(image, redPixelValues, greenPixelValues, bluePixelValues,
+				x, y);
+		// Get the map block to hide
+		reader->getNextMapBlock(block);
+		cout << "Hiding map block: " << endl;
+		utility->printBitPlane(block);
+		// Hide in the reserved bit plane in the given color
+		if (mbc.color == kRed) {
+			cout << "embedded in red" << endl;
+			utility->embedBitPlane(redPixelValues, block, mbc.bitPlane);
+		} else if (mbc.color == kGreen) {
+			utility->embedBitPlane(greenPixelValues, block, mbc.bitPlane);
+		} else {
+			utility->embedBitPlane(bluePixelValues, block, mbc.bitPlane);
+		}
+		cout << "After embedding, found bit plane: " << endl;
+		utility->extractBitPlane(redPixelValues, block, mbc.bitPlane);
+		utility->printBitPlane(block);
+		writePixelBlock(image, redPixelValues, greenPixelValues,
+				bluePixelValues, x, y);
+	}
+	cout << "done with map blocks" << endl;
+}
+
+void readPixelBlock(bitmap_image* image, unsigned char redValues[8][8],
+		unsigned char greenValues[8][8], unsigned char blueValues[8][8],
+		int startX, int startY) {
+   unsigned char red; // Red value of single pixel
+   unsigned char green; // Green value of single pixel
+   unsigned char blue; // Blue value of single pixel
+   for (size_t i = 0; i < kBlockSize; i++) {
+	   for (size_t j = 0; j < kBlockSize; j++) {
+		   image->get_pixel(startX + i, startY + j, red, green, blue);
+		   redValues[i][j] = red;
+		   greenValues[i][j] = green;
+		   blueValues[i][j] = blue;
+	   }
+   }
+}
+
+void writePixelBlock(bitmap_image* image, unsigned char redValues[8][8],
+		unsigned char greenValues[8][8], unsigned char blueValues[8][8],
+		int startX, int startY) {
+   for (size_t i = 0; i < kBlockSize; i++) {
+	   for (size_t j = 0; j < kBlockSize; j++) {
+		   image->set_pixel(startX + i, startY + j, redValues[i][j],
+				   greenValues[i][j], blueValues[i][j]);
+	   }
+   }
+}
 
 void imageToCGC(bitmap_image* image) {
    unsigned char red; // Red value of pixel
@@ -413,26 +434,98 @@ void imageToPBC(bitmap_image* image) {
 
 void decode() {
 	// Open bitmap file
-   bitmap_image stego(coverFileName);
-
+   bitmap_image stego(stegoFileName);
    if (!stego)
    {
 	  cout << "Error: Unable to open cover image file: "
-			  << coverFileName << endl;
+			  << stegoFileName << endl;
 	  exit(1);
    }
 
-   unsigned char red;
-   unsigned char green;
-   unsigned char blue;
-   int color = kRed;
-   unsigned char pixelBlock[kBlockSize][kBlockSize];
-   unsigned char block[kBlockSize];
-   int bitPlane = 0;
-   for (int x = 0; x <= stego.width() - kBlockSize; x += kBlockSize) {
-	   for (int y = 0; y < stego.height() - kBlockSize; y += kBlockSize) {
+   imageToCGC(&stego);
 
+   // Open output file for writing message
+   writer = new MessageWriter(outputFileName, utility);
+   // TODO check for errors
+   cout << "Decoding message " << endl;
+   cout << "Using alpha: " << utility->getComplexityThreshold();
+   bool done = false;
+   for (int i = 0; i < 8 && !done; i++) {
+	   if (redFlag || allFlag) {
+		   done = traverseBitPlaneDecode(i, kRed, &stego);
+	   }
+	   if (greenFlag || allFlag) {
+		   done = traverseBitPlaneDecode(i, kGreen, &stego);
+	   }
+	   if (blueFlag || allFlag) {
+		   done = traverseBitPlaneDecode(i, kBlue, &stego);
 	   }
    }
+}
 
+bool traverseBitPlaneDecode(int bitPlane, int color, bitmap_image* image) {
+   unsigned char red; // Red value of single pixel
+   unsigned char green; // Green value of single pixel
+   unsigned char blue; // Blue value of single pixel
+   // Color values for 8x8 pixel blocks
+   unsigned char redPixelValues[kBlockSize][kBlockSize];
+   unsigned char greenPixelValues[kBlockSize][kBlockSize];
+   unsigned char bluePixelValues[kBlockSize][kBlockSize];
+   // 8x8 block from a single bit plane
+   unsigned char block[kBlockSize];
+   // Traverse image pixels
+   int width = image->width();
+   int height = image->height();
+   for (int x = 0; x <= width - kBlockSize; x += kBlockSize) {
+	   for (int y = 0; y < height - kBlockSize; y += kBlockSize) {
+		   // Get color values for 8x8 pixel blocks
+		   readPixelBlock(image, redPixelValues, greenPixelValues,
+				   bluePixelValues, x, y);
+		   // Get desired bit plane
+		   if (redFlag) {
+			   utility->extractBitPlane(redPixelValues, block, bitPlane);
+		   } else if (greenFlag) {
+			   utility->extractBitPlane(greenPixelValues, block, bitPlane);
+		   } else {
+			   utility->extractBitPlane(bluePixelValues, block, bitPlane);
+		   }
+		   // If complex block is found, decode the message value
+		   if (x == 0 && y == 104) {
+			   cout << "block at 0, 104: " << endl;
+			   utility->printBitPlane(block);
+			   bool complex = utility->isComplex(block);
+			   cout << "Found complex: " << complex << endl;
+		   }
+		   if (utility->isComplex(block)) {
+			   if (!sizeFound) {
+				   cout << "Size block" << endl;
+				   // First block holds the size
+				   writer->decodeSizeBlock(block);
+				   sizeFound = true;
+				   cout << "After decode size block" << endl;
+				   numMapBlocks = writer->getNumMapBlocks();
+				   cout << "Found num map blocks: " << numMapBlocks << endl;
+			   } else if (sizeFound && mapBlocksFound < numMapBlocks) {
+				   // Next few blocks hold the conjugation map
+				   cout << "map block at x: " << x << " Y: " << y << endl;
+				   cout << "Before decode map block" << endl;
+				   writer->decodeNextMapBlock(block);
+				   mapBlocksFound++;
+				   cout << "decoded map block" << endl;
+			   } else {
+				   // Normal message block read
+				   bool done = writer->decodeNextMessageBlock(block, blockIndex);
+				   if (done) {
+					   cout << "Finished decoding message of size "
+							   << writer->getMessageSize() << endl;
+					   writer->closeFile();
+					   return true;
+				   }
+				   blockIndex++;
+			   }
+		   }
+	   }
+   }
+   cout << "finished bit plane : " << bitPlane << endl;
+   return false;
 }

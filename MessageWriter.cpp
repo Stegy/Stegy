@@ -12,50 +12,52 @@
 
 using namespace std;
 
-MessageWriter::MessageWriter(string fileName) {
+MessageWriter::MessageWriter(string fileName, BlockUtility* utility) {
 	output.open(fileName, ios::out | ios::binary);
 	if (!output.is_open()) {
 		cout << "Failed to open file for writing" << endl;
 		cout << "error: " << strerror(errno) << endl;
 		exit(1);
 	}
+	currentSize = 0;
 	mapBlockIdx = -1;
 	numMapBlocks = -1;
 	map = NULL;
+	this->utility = utility;
 }
 
-//void MessageWriter::decodeNext(unsigned char* secretBlock) {
-//	blockIdx++;
-//	// If first block read, get the size
-//	if (blockIdx == 0) {
-//
-//	}
-//}
-
 int MessageWriter::decodeSizeBlock(unsigned char* sizeBlock) {
+	cout << "orig size block: " << endl;
+	utility->printBitPlane(sizeBlock);
 	if (conjBitSet(sizeBlock[0])) {
-		// TODO Conjugate the block
+		cout << "conjugated" << endl;
+		utility->conjugate(sizeBlock);
+		utility->printBitPlane(sizeBlock);
 	}
 	// Set conjugation bit to 0
-	sizeBlock[0] |= 0x7F;
-	int size = 0;
+	sizeBlock[0] &= 0x7F;
+	uint64_t size = 0;
 	uint8_t shiftAmt = 56; // 7 bytes
 	// Read size bytes into int
 	for (int i = 0; i < kBlockSize; i++) {
+		bitset<8> x(sizeBlock[i]);
+		cout << "size row: " << x << endl;
 		size += (sizeBlock[i] << shiftAmt);
 		shiftAmt -= 8;
 	}
-	// TODO - build the map and set up stuff here
-	return size;
+	messageSize = size;
+	cout << "In message writer, found size : " << messageSize << endl;
+	setUpMapBlocks(messageSize);
+	return messageSize;
 }
 
 // Returns # of map blocks
 int MessageWriter::setUpMapBlocks(int size) {
-	bool partBlock = (size % 8 != 0);
-	// Base map size in bits
-	int mapSize = size / 8 + (partBlock ? 1 : 0);
+	cout << "Setting up map blocks" << endl;
+	int mapSize = ceil((double) size / 8);
 	// Number of map blocks = number conjugation bits needed for map
 	numMapBlocks = ceil((double) mapSize / 63);
+	cout << "Number of map blocks: " << numMapBlocks << endl;
 	// Should actually build this here
 	map = new MapBlock[numMapBlocks];
 	int i;
@@ -67,12 +69,23 @@ int MessageWriter::setUpMapBlocks(int size) {
 	return numMapBlocks;
 }
 
+int MessageWriter::getNumMapBlocks() {
+	return numMapBlocks;
+}
+
+int MessageWriter::getMessageSize() {
+	return messageSize;
+}
 
 void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
+	cout << "found map block: " << endl;
+	utility->printBitPlane(secretBlock);
 	mapBlockIdx++;
 	// Creates map block from the secret block passed in
 	if (conjBitSet(secretBlock[0])) {
-		// TODO conjugate the block
+		utility->conjugate(secretBlock);
+		cout << "conjugated map block: " << endl;
+		utility->printBitPlane(secretBlock);
 	}
 	// Add data to the map block
 	map[mapBlockIdx].firstRow = secretBlock[0] & 0x80;
@@ -80,23 +93,35 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 		map[mapBlockIdx].rows[i] = secretBlock[i + 1];
 	}
 	// TODO read first part of data if fullTo < 8
-	for (int i = map[mapBlockIdx].fullTo; i < kBlockSize - 1; i++) {
-		output.write((char*) map[mapBlockIdx].rows[i], 1);
+	for (int i = map[mapBlockIdx].fullTo - 1; i < kBlockSize - 1; i++) {
+		cout << "map block write attempt" << endl;
+		output.write((char*) map[mapBlockIdx].rows + i, 1);
+		currentSize++;
+		cout << "After write " << endl;
 	}
 }
 
-void MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
-		int blockIdx, int stopIdx) {
+// Returns true when message is done being read
+bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
+		int blockIdx) {
 	if (isConjugated(blockIdx)) {
-		// Conjugate secretBlock
+		cout << "Found conjugated block " << blockIdx << endl;
+		utility->conjugate(secretBlock);
 	}
-	for (int i = 0; i < stopIdx; i++) {
-		output.write((char*) secretBlock[i], 1);
+	for (int i = 0; i < kBlockSize && currentSize < messageSize; i++) {
+		cout << "Wrote: " << (char*) secretBlock + i << endl;
+		cout << "Size: " << currentSize << " out of " << messageSize << endl;
+		output.write((char*) secretBlock + i, 1);
+		currentSize++;
 	}
+	if (currentSize == messageSize) {
+		return true;
+	}
+	return false;
 }
 
 bool MessageWriter::conjBitSet(unsigned char firstByte) {
-	return (firstByte & 0x80) == 1;
+	return ((firstByte & 0x80) >> 7) == 1;
 }
 
 
@@ -120,4 +145,8 @@ bool MessageWriter::isConjugated(int blockIndex) {
 		}
 		return true;
 	}
+}
+
+void MessageWriter::closeFile() {
+	output.close();
 }

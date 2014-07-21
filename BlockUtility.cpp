@@ -52,9 +52,7 @@ float BlockUtility::getComplexity(unsigned char * block)
         for(y = 0; y < 8; y++)
         {
         	current = getBitOfChar(block[x], y);
-//            current = intBlock[x][y];
         	last = getBitOfChar(block[x-1], y);
-//            last = intBlock[x-1][y];
             if(last != current)
             {
                 totalChanges++;
@@ -68,10 +66,8 @@ float BlockUtility::getComplexity(unsigned char * block)
     {
         for(x=0;x<8;x++)
         {
-//            current = intBlock[x][y];
         	current = getBitOfChar(block[x], y);
-//            last = intBlock[x][y-1];
-        	current = getBitOfChar(block[x-1], y);
+        	last = getBitOfChar(block[x], y - 1);
             if(last!=current)
             {
                 totalChanges++;

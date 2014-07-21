@@ -34,21 +34,24 @@ MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 /**
  * Returns the 8-byte header containing the file size. The most significant bit
  * of the first byte in the array is initially set to 0, and should be used as
- * a conjugation bit.
+ * a conjugation bit. Assumes the size fits in 63 bits.
  */
 void MessageReader::getSizeBlock(unsigned char* result) {
-//	unsigned char* result = new unsigned char[kBlockSize];
-	// TODO, check if over max size
-	result[0] = (size & 0x7F00000000000000) >> 56; // 7 bytes
+	// In first row of result block, set conjugation bit to 0, and
+	// keep remaining 7 bits
+	result[0] = (size >> 56) & 0x7F; // Shifted 7 bytes out
 	uint64_t mask = 0x00FF000000000000;
 	uint8_t shiftAmt = 48; // 6 bytes
 	for (int i = 1; i < kBlockSize; i++) {
+		// Mask for desired byte of size and shift it to the right
 		result[i] = (size & mask) >> shiftAmt;
 		mask >>= 8;
 		shiftAmt -= 8;
 	}
-	if (utility->isComplex(result)) {
+	if (!utility->isComplex(result)) {
 		utility->conjugate(result);
+		// Set conjugation bit to 1
+		result[0] |= 0x80;
 	}
 }
 
@@ -58,41 +61,31 @@ void MessageReader::getSizeBlock(unsigned char* result) {
  * the message data is stored inside.
  */
 void MessageReader::buildMap() {
-	// Finds if the message will partially fill its last block (extra bytes)
-	bool partBlock = (size % 8 != 0);
-	// Base map size in bits
-	int mapSize = size / 8 + (partBlock ? 1 : 0);
-	// Number of map blocks = number conjugation bits needed for map
+	// Map size in bits (number of conjugation bits needed for message)
+	int mapSize = ceil((double) size / 8);
+	// Number of map blocks needed
 	numMapBlocks = ceil((double) mapSize / 63);
-	mapSize += numMapBlocks; // Total map size in bits
 	map = new MapBlock[numMapBlocks];
 	int i;
 	// Initialize map block sizes
 	for (i = 0; i < numMapBlocks - 1; i++) {
 		map[i].fullTo = kBlockSize;
 	}
+	// Find how much of the last map block is taken up
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
+	// Fill in remainder of last map block with message data
 	int readSize = kBlockSize - map[i].fullTo;
 	if (readSize > 0) {
-//		int offset = map[i].fullTo;
-		unsigned char tempBuf[readSize];
-		int res = getNext(readSize, tempBuf);
-		if (res != readSize && res < size) {
-			// TODO handle
-			cout << "empty read" << endl;
-		} else {
-			int k = 0;
-			for (int j = map[i].fullTo - 1; j < kBlockSize - 1; j++) {
-				map[i].rows[j] = tempBuf[k++];
-			}
-			cout << "read : " << res << endl;
+		int readIdx;
+		for (readIdx = 0; readIdx < readSize && messageIndex < size;
+				readIdx++) {
+			map[i].rows[map[i].fullTo - 1 + readIdx]
+			            = fileBuffer[messageIndex++];
 		}
-	} else {
-		cout << "read size < 0" << endl;
-	}
-	cout << "Map blocks at end of build map: " << endl;
-	for (int j = 0; j < numMapBlocks; j++) {
-		cout << "full to: " << map[j].fullTo << endl;
+		if (readIdx != readSize && readIdx < size) {
+			cout << "Error reading from message file" << endl;
+			exit(1);
+		}
 	}
 }
 
@@ -112,12 +105,11 @@ int MessageReader::getSize() {
  * Gets the next readSize bytes from the message, if possible, and adds them
  * to the passed buffer. Returns the number of bytes read into the buffer.
  */
-int MessageReader::getNext(int readSize, unsigned char* readBuffer) {
-	int i;
-	for (i = 0; i < readSize && messageIndex < size; i++) {
+bool MessageReader::getNext(int readSize, unsigned char* readBuffer) {
+	for (int i = 0; i < readSize && messageIndex < size; i++) {
 		readBuffer[i] = fileBuffer[messageIndex++];
 	}
-	return i;
+	return (messageIndex == size);
 }
 
 /**
@@ -125,9 +117,23 @@ int MessageReader::getNext(int readSize, unsigned char* readBuffer) {
  * secret message has been embedded and the corresponding map bits have been
  * set.
  */
-MapBlock MessageReader::getNextMapBlock() {
-	// TODO: Conjugate and set conjugation bit!
-	return map[mapIndex++];
+bool MessageReader::getNextMapBlock(unsigned char* block) {
+	block[0] = map[mapIndex].firstRow;
+	block[0] &= 0x7F; // Initialize conjugation bit to 0
+	for (int i = 1; i < kBlockSize; i++) {
+		block[i] = map[mapIndex].rows[i-1];
+	}
+	cout << "Constructed map block: " << endl;
+	utility->printBitPlane(block);
+	bool test = utility->isComplex(block);
+	cout << "Found complexity: " << test << endl;
+	if (!utility->isComplex(block)) {
+		utility->conjugate(block);
+		cout << "conjugated map block" << endl;
+		block[0] |= (1 << (kBlockSize - 1));
+	}
+	mapIndex++;
+	return (mapIndex == numMapBlocks);
 }
 
 /**
@@ -155,20 +161,3 @@ void MessageReader::setMapBit(int blockIndex, bool conjugated) {
 		}
 	}
 }
-
-/**
- * Main process:
- * - get header, conjugate if necessary
- * - get number of map blocks, reserve this space
- * - until message is over:
- * 		get next message block
- * 		conjugate if necessary
- * 		set conjugation map
- * 		embed message
- * - for each map block:
- * 		get the map block
- * 		conjugate if necessary
- * 		set its conjugation bit
- * 		embed in reserved place
- */
-

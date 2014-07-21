@@ -5,6 +5,7 @@
  *      Author: Rebecca
  */
 
+#include "BlockUtility.h"
 #include "StegoCommon.h"
 
 #include <fstream>
@@ -20,14 +21,16 @@ using namespace std;
 
 class MessageWriter {
 public:
-	MessageWriter(string fileName);
+	MessageWriter(string fileName, BlockUtility* utility);
 	void decodeNext(unsigned char* secretBlock);
 	int decodeSizeBlock(unsigned char* sizeBlock);
 	int setUpMapBlocks(int size);
 	void decodeNextMapBlock(unsigned char* secretBlock);
-	void decodeNextMessageBlock(unsigned char* secretBlock, int blockIdx,
-			int stopIdx);
+	bool decodeNextMessageBlock(unsigned char* secretBlock, int blockIdx);
 	bool isConjugated(int blockIndex);
+	int getNumMapBlocks();
+	int getMessageSize();
+	void closeFile();
 
 private:
 	bool conjBitSet(unsigned char firstByte);
@@ -37,6 +40,9 @@ private:
 	int mapBlockIdx;
 	MapBlock* map;
 	ofstream output;
+	int messageSize;
+	int currentSize;
+	BlockUtility* utility;
 };
 
 #endif /* MESSAGEWRITER_H_ */

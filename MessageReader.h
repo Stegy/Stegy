@@ -55,9 +55,9 @@ public:
 	void getSizeBlock(unsigned char* result);
 	unsigned char* getNext();
 	int getNumMapBlocks();
-	int getNext(int size, unsigned char* buffer);
+	bool getNext(int size, unsigned char* buffer);
 	void setMapBit(int blockNumber, bool value);
-	MapBlock getNextMapBlock();
+	bool getNextMapBlock(unsigned char* block);
 	int getSize();
 
 };

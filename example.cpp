@@ -33,7 +33,7 @@ int main()
          image.get_pixel(x,y,red,green,blue);
          if (red >= 111)
             total_number_of_pixels++;
-         if (y % 2 == 0 && y < height/2 && x < width/2) {
+         if (y % 2 == 0 && x < width/2) {
         	 image.set_pixel(x, y, 0, 0, 0);
          }
       }
