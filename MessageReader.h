@@ -12,6 +12,7 @@
 #include "StegoCommon.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,7 @@ private:
 	MapBlock* map;
 	int numMapBlocks;
 	BlockUtility* utility;
+	FILE* fpInput;
 //	const int kBlockSize = 8;
 
 	void buildMap();

@@ -10,21 +10,45 @@
 #include <fstream>
 #include <math.h>
 #include <iostream>
+#include <stdio.h>
 
 using namespace std;
 
 MessageReader::MessageReader(string fileName, BlockUtility* utility) {
-	std::ifstream input(fileName, std::ios::in|std::ios::binary);
-	if (!input.is_open()) {
+//	std::ifstream input(fileName, std::ios::in|std::ios::binary);
+//	if (!input.is_open()) {
+//		cout << "failed to open file for reading" << endl;
+//		cout << "error: " << strerror(errno) << endl;
+//		exit(1);
+//	}
+	fpInput = fopen(fileName.c_str(), "r");
+	if (fpInput == NULL) {
 		cout << "failed to open file for reading" << endl;
 		cout << "error: " << strerror(errno) << endl;
 		exit(1);
 	}
-	input.seekg(0, ios::end);
-	size = input.tellg();
+	fseek(fpInput, 0 ,SEEK_END);
+	size = ftell(fpInput);
+//	input.seekg(0, ios::end);
+//	size = input.tellg();
+	int pos;
+	fseek(fpInput, pos, SEEK_SET);
+	cout << "seek to beginning" << endl;
 	fileBuffer = new unsigned char[size];
-	input.seekg(0, ios::beg);
-	input.getline((char*) fileBuffer, size); // TODO Okay for unsigned conversion?
+	cout << "made file buffer of size " << size << endl;
+
+	unsigned char test = fileBuffer[0];
+	cout << " Test buffer before read: " << test << endl;
+
+
+//	input.seekg(0, ios::beg);
+//	input.getline((char*) fileBuffer, size); // TODO Okay for unsigned conversion?
+	fread(fileBuffer, 1, size, fpInput);
+	fclose(fpInput);
+//	cout << "After read" << endl;
+//	for (int i = 0; i < size; i++) {
+//		cout << fileBuffer[i] << endl;
+//	}
 	messageIndex = 0;
 	mapIndex = 0;
 	this->utility = utility;
@@ -39,6 +63,7 @@ MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 void MessageReader::getSizeBlock(unsigned char* result) {
 	// In first row of result block, set conjugation bit to 0, and
 	// keep remaining 7 bits
+	cout << "IN SIZE BLOCK: " << fileBuffer[0] << endl;
 	result[0] = (size >> 56) & 0x7F; // Shifted 7 bytes out
 	uint64_t mask = 0x00FF000000000000;
 	uint8_t shiftAmt = 48; // 6 bytes
@@ -61,6 +86,7 @@ void MessageReader::getSizeBlock(unsigned char* result) {
  * the message data is stored inside.
  */
 void MessageReader::buildMap() {
+	cout << "IN BUILD MAP:" << fileBuffer[0] << endl;
 	// Map size in bits (number of conjugation bits needed for message)
 	int mapSize = ceil((double) size / 8);
 	// Number of map blocks needed
@@ -75,10 +101,13 @@ void MessageReader::buildMap() {
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	// Fill in remainder of last map block with message data
 	int readSize = kBlockSize - map[i].fullTo;
+	cout << "Before map read" << endl;
 	if (readSize > 0) {
 		int readIdx;
 		for (readIdx = 0; readIdx < readSize && messageIndex < size;
 				readIdx++) {
+			cout << "Read message index: " << messageIndex << endl;
+			cout << "map index: " << map[i].fullTo - 1 + readIdx << endl;
 			map[i].rows[map[i].fullTo - 1 + readIdx]
 			            = fileBuffer[messageIndex++];
 		}
@@ -87,6 +116,7 @@ void MessageReader::buildMap() {
 			exit(1);
 		}
 	}
+	cout << "After map read";
 }
 
 /**
@@ -106,7 +136,9 @@ int MessageReader::getSize() {
  * to the passed buffer. Returns the number of bytes read into the buffer.
  */
 bool MessageReader::getNext(int readSize, unsigned char* readBuffer) {
+	cout << "IN GET NEXT:" << fileBuffer[0] << endl;
 	for (int i = 0; i < readSize && messageIndex < size; i++) {
+		cout << "wrote byte: " << fileBuffer[messageIndex] << endl;
 		readBuffer[i] = fileBuffer[messageIndex++];
 	}
 	return (messageIndex == size);

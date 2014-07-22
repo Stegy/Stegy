@@ -9,6 +9,7 @@
 #include "StegoCommon.h"
 
 #include <fstream>
+#include <stdio.h>
 #include <string>
 
 using namespace std;
@@ -43,6 +44,7 @@ private:
 	int messageSize;
 	int currentSize;
 	BlockUtility* utility;
+	FILE* fpOutput;
 };
 
 #endif /* MESSAGEWRITER_H_ */

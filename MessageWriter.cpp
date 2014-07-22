@@ -13,12 +13,19 @@
 using namespace std;
 
 MessageWriter::MessageWriter(string fileName, BlockUtility* utility) {
-	output.open(fileName, ios::out | ios::binary);
-	if (!output.is_open()) {
+//	output.open(fileName, ios::out | ios::binary);
+//	if (!output.is_open()) {
+//		cout << "Failed to open file for writing" << endl;
+//		cout << "error: " << strerror(errno) << endl;
+//		exit(1);
+//	}
+	fpOutput = fopen(fileName.c_str(), "w");
+	if (fpOutput == NULL) {
 		cout << "Failed to open file for writing" << endl;
 		cout << "error: " << strerror(errno) << endl;
 		exit(1);
 	}
+
 	currentSize = 0;
 	mapBlockIdx = -1;
 	numMapBlocks = -1;
@@ -95,7 +102,8 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 	// TODO read first part of data if fullTo < 8
 	for (int i = map[mapBlockIdx].fullTo - 1; i < kBlockSize - 1; i++) {
 		cout << "map block write attempt" << endl;
-		output.write((char*) map[mapBlockIdx].rows + i, 1);
+//		output.write((char*) map[mapBlockIdx].rows + i, 1);
+		fwrite(map[mapBlockIdx].rows + i, 1, 1, fpOutput);
 		currentSize++;
 		cout << "After write " << endl;
 	}
@@ -109,9 +117,8 @@ bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
 		utility->conjugate(secretBlock);
 	}
 	for (int i = 0; i < kBlockSize && currentSize < messageSize; i++) {
-		cout << "Wrote: " << (char*) secretBlock + i << endl;
-		cout << "Size: " << currentSize << " out of " << messageSize << endl;
-		output.write((char*) secretBlock + i, 1);
+//		output.write((char*) secretBlock + i, 1);
+		fwrite(secretBlock + i, 1, 1, fpOutput);
 		currentSize++;
 	}
 	if (currentSize == messageSize) {
@@ -148,5 +155,6 @@ bool MessageWriter::isConjugated(int blockIndex) {
 }
 
 void MessageWriter::closeFile() {
-	output.close();
+//	output.close();
+	fclose(fpOutput);
 }
