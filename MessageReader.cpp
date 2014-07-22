@@ -33,22 +33,12 @@ MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 //	size = input.tellg();
 	int pos;
 	fseek(fpInput, pos, SEEK_SET);
-	cout << "seek to beginning" << endl;
 	fileBuffer = new unsigned char[size];
-	cout << "made file buffer of size " << size << endl;
-
-	unsigned char test = fileBuffer[0];
-	cout << " Test buffer before read: " << test << endl;
-
 
 //	input.seekg(0, ios::beg);
 //	input.getline((char*) fileBuffer, size); // TODO Okay for unsigned conversion?
 	fread(fileBuffer, 1, size, fpInput);
 	fclose(fpInput);
-//	cout << "After read" << endl;
-//	for (int i = 0; i < size; i++) {
-//		cout << fileBuffer[i] << endl;
-//	}
 	messageIndex = 0;
 	mapIndex = 0;
 	this->utility = utility;
@@ -63,7 +53,6 @@ MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 void MessageReader::getSizeBlock(unsigned char* result) {
 	// In first row of result block, set conjugation bit to 0, and
 	// keep remaining 7 bits
-	cout << "IN SIZE BLOCK: " << fileBuffer[0] << endl;
 	result[0] = (size >> 56) & 0x7F; // Shifted 7 bytes out
 	uint64_t mask = 0x00FF000000000000;
 	uint8_t shiftAmt = 48; // 6 bytes
@@ -86,7 +75,6 @@ void MessageReader::getSizeBlock(unsigned char* result) {
  * the message data is stored inside.
  */
 void MessageReader::buildMap() {
-	cout << "IN BUILD MAP:" << fileBuffer[0] << endl;
 	// Map size in bits (number of conjugation bits needed for message)
 	int mapSize = ceil((double) size / 8);
 	// Number of map blocks needed
@@ -101,13 +89,10 @@ void MessageReader::buildMap() {
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	// Fill in remainder of last map block with message data
 	int readSize = kBlockSize - map[i].fullTo;
-	cout << "Before map read" << endl;
 	if (readSize > 0) {
 		int readIdx;
 		for (readIdx = 0; readIdx < readSize && messageIndex < size;
 				readIdx++) {
-			cout << "Read message index: " << messageIndex << endl;
-			cout << "map index: " << map[i].fullTo - 1 + readIdx << endl;
 			map[i].rows[map[i].fullTo - 1 + readIdx]
 			            = fileBuffer[messageIndex++];
 		}
@@ -116,7 +101,6 @@ void MessageReader::buildMap() {
 			exit(1);
 		}
 	}
-	cout << "After map read";
 }
 
 /**
@@ -136,9 +120,7 @@ int MessageReader::getSize() {
  * to the passed buffer. Returns the number of bytes read into the buffer.
  */
 bool MessageReader::getNext(int readSize, unsigned char* readBuffer) {
-	cout << "IN GET NEXT:" << fileBuffer[0] << endl;
 	for (int i = 0; i < readSize && messageIndex < size; i++) {
-		cout << "wrote byte: " << fileBuffer[messageIndex] << endl;
 		readBuffer[i] = fileBuffer[messageIndex++];
 	}
 	return (messageIndex == size);
@@ -155,13 +137,9 @@ bool MessageReader::getNextMapBlock(unsigned char* block) {
 	for (int i = 1; i < kBlockSize; i++) {
 		block[i] = map[mapIndex].rows[i-1];
 	}
-	cout << "Constructed map block: " << endl;
-	utility->printBitPlane(block);
 	bool test = utility->isComplex(block);
-	cout << "Found complexity: " << test << endl;
 	if (!utility->isComplex(block)) {
 		utility->conjugate(block);
-		cout << "conjugated map block" << endl;
 		block[0] |= (1 << (kBlockSize - 1));
 	}
 	mapIndex++;

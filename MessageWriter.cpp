@@ -34,12 +34,8 @@ MessageWriter::MessageWriter(string fileName, BlockUtility* utility) {
 }
 
 int MessageWriter::decodeSizeBlock(unsigned char* sizeBlock) {
-	cout << "orig size block: " << endl;
-	utility->printBitPlane(sizeBlock);
 	if (conjBitSet(sizeBlock[0])) {
-		cout << "conjugated" << endl;
 		utility->conjugate(sizeBlock);
-		utility->printBitPlane(sizeBlock);
 	}
 	// Set conjugation bit to 0
 	sizeBlock[0] &= 0x7F;
@@ -47,24 +43,19 @@ int MessageWriter::decodeSizeBlock(unsigned char* sizeBlock) {
 	uint8_t shiftAmt = 56; // 7 bytes
 	// Read size bytes into int
 	for (int i = 0; i < kBlockSize; i++) {
-		bitset<8> x(sizeBlock[i]);
-		cout << "size row: " << x << endl;
 		size += (sizeBlock[i] << shiftAmt);
 		shiftAmt -= 8;
 	}
 	messageSize = size;
-	cout << "In message writer, found size : " << messageSize << endl;
 	setUpMapBlocks(messageSize);
 	return messageSize;
 }
 
 // Returns # of map blocks
 int MessageWriter::setUpMapBlocks(int size) {
-	cout << "Setting up map blocks" << endl;
 	int mapSize = ceil((double) size / 8);
 	// Number of map blocks = number conjugation bits needed for map
 	numMapBlocks = ceil((double) mapSize / 63);
-	cout << "Number of map blocks: " << numMapBlocks << endl;
 	// Should actually build this here
 	map = new MapBlock[numMapBlocks];
 	int i;
@@ -85,14 +76,10 @@ int MessageWriter::getMessageSize() {
 }
 
 void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
-	cout << "found map block: " << endl;
-	utility->printBitPlane(secretBlock);
 	mapBlockIdx++;
 	// Creates map block from the secret block passed in
 	if (conjBitSet(secretBlock[0])) {
 		utility->conjugate(secretBlock);
-		cout << "conjugated map block: " << endl;
-		utility->printBitPlane(secretBlock);
 	}
 	// Add data to the map block
 	map[mapBlockIdx].firstRow = secretBlock[0] & 0x80;
@@ -101,11 +88,9 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 	}
 	// TODO read first part of data if fullTo < 8
 	for (int i = map[mapBlockIdx].fullTo - 1; i < kBlockSize - 1; i++) {
-		cout << "map block write attempt" << endl;
 //		output.write((char*) map[mapBlockIdx].rows + i, 1);
 		fwrite(map[mapBlockIdx].rows + i, 1, 1, fpOutput);
 		currentSize++;
-		cout << "After write " << endl;
 	}
 }
 
@@ -113,7 +98,6 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
 		int blockIdx) {
 	if (isConjugated(blockIdx)) {
-		cout << "Found conjugated block " << blockIdx << endl;
 		utility->conjugate(secretBlock);
 	}
 	for (int i = 0; i < kBlockSize && currentSize < messageSize; i++) {

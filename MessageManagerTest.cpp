@@ -87,20 +87,13 @@ int main() {
 //	cout << "Past writer" << endl;
 
 	// Writing test
-	MessageReader testRead("bin/gettysburg.txt", &utility);
-	MessageWriter testWrite("testOutput.txt", &utility);
+	MessageReader testRead("bin/input1.bmp", &utility);
+	MessageWriter testWrite("testOutput.bmp", &utility);
 	CGCTranslator translator;
 	testRead.getSizeBlock(testBlock);
 	testWrite.decodeSizeBlock(testBlock);
 	for (int i = 0; i < testRead.getNumMapBlocks(); i++ ){
 		testRead.getNextMapBlock(testBlock);
-
-//		for (int j = 0; j < 8; j++ ) {
-//			testBlockCGC[j] = translator.cgcToBinary(testBlock[j]);
-//		}
-//		for (int j = 0; j < 8; j++) {
-//			testBlock[j] = translator.binaryToCgc(testBlockCGC[j]);
-//		}
 		testWrite.decodeNextMapBlock(testBlock);
 	}
 
@@ -110,6 +103,12 @@ int main() {
 		for (int i = 0; i < 8; i++ ) {
 			cout << "next byte: " << testBlock[i] << endl;
 		}
+				for (int j = 0; j < 8; j++ ) {
+					testBlockCGC[j] = translator.cgcToBinary(testBlock[j]);
+				}
+				for (int j = 0; j < 8; j++) {
+					testBlock[j] = translator.binaryToCgc(testBlockCGC[j]);
+				}
 		testWrite.decodeNextMessageBlock(testBlock, 0);
 	}
 	cout << "Finished read/write test to testOutput.txt" << endl;

@@ -51,6 +51,7 @@ struct MapBlockCoords {
 	int color;
 };
 vector<MapBlockCoords> mapBlockCoords;
+int conjCount = 0;
 
 void verifyArguments(int argc, char* argv[]);
 void encode();
@@ -246,6 +247,9 @@ void encode() {
 		   done = traverseBitPlaneEmbed(i, kBlue, &cover);
 	   }
    }
+   if (!done) {
+	   cout << "Unable to embed entire message" << endl;
+   }
    // Embed the completed map blocks in the image
    embedMapBlocks(&cover);
    // Translate image back to PBC
@@ -291,7 +295,6 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 				   mbc.bitPlane = bitPlane;
 				   mbc.color = color;
 				   mapBlockCoords.push_back(mbc);
-				   cout << "Saved map block: x: " << x << ", y: " << y << endl;
 				   mapBlocksFound++;
 			   } else {
 				   if (!sizeFound) {
@@ -314,11 +317,6 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 						   reader->setMapBit(blockIndex, true);
 					   }
 					   blockIndex++;
-				   }
-				   // TODO temp
-				   if (blockIndex == 4) {
-					   cout << "Embedding message block at " << x << ",  " << y << endl;
-					   utility->printBitPlane(block);
 				   }
 				   // Modify the current block of color values to contain the
 				   // secret block
@@ -346,35 +344,27 @@ void embedMapBlocks(bitmap_image* image) {
 	unsigned char greenPixelValues[kBlockSize][kBlockSize];
 	unsigned char bluePixelValues[kBlockSize][kBlockSize];
 	unsigned char block[kBlockSize];
-	cout << "Starting map blocks" << endl;
 	for (int i = 0; i < mapBlockCoords.size(); i++) {
 		MapBlockCoords mbc = mapBlockCoords[i];
 		int x = mbc.pixelCorner.first;
 		int y = mbc.pixelCorner.second;
-		cout << "x: " << x << ", y: " << y << endl;
 		// Read pixel block at correct location
 		readPixelBlock(image, redPixelValues, greenPixelValues, bluePixelValues,
 				x, y);
 		// Get the map block to hide
 		reader->getNextMapBlock(block);
-		cout << "Hiding map block: " << endl;
-		utility->printBitPlane(block);
 		// Hide in the reserved bit plane in the given color
 		if (mbc.color == kRed) {
-			cout << "embedded in red" << endl;
 			utility->embedBitPlane(redPixelValues, block, mbc.bitPlane);
 		} else if (mbc.color == kGreen) {
 			utility->embedBitPlane(greenPixelValues, block, mbc.bitPlane);
 		} else {
 			utility->embedBitPlane(bluePixelValues, block, mbc.bitPlane);
 		}
-		cout << "After embedding, found bit plane: " << endl;
 		utility->extractBitPlane(redPixelValues, block, mbc.bitPlane);
-		utility->printBitPlane(block);
 		writePixelBlock(image, redPixelValues, greenPixelValues,
 				bluePixelValues, x, y);
 	}
-	cout << "done with map blocks" << endl;
 }
 
 void readPixelBlock(bitmap_image* image, unsigned char redValues[8][8],
@@ -447,8 +437,6 @@ void decode() {
    // Open output file for writing message
    writer = new MessageWriter(outputFileName, utility);
    // TODO check for errors
-   cout << "Decoding message " << endl;
-   cout << "Using alpha: " << utility->getComplexityThreshold();
    bool done = false;
    for (int i = 0; i < 8 && !done; i++) {
 	   if (redFlag || allFlag) {
@@ -490,28 +478,16 @@ bool traverseBitPlaneDecode(int bitPlane, int color, bitmap_image* image) {
 			   utility->extractBitPlane(bluePixelValues, block, bitPlane);
 		   }
 		   // If complex block is found, decode the message value
-		   if (x == 0 && y == 104) {
-			   cout << "block at 0, 104: " << endl;
-			   utility->printBitPlane(block);
-			   bool complex = utility->isComplex(block);
-			   cout << "Found complex: " << complex << endl;
-		   }
 		   if (utility->isComplex(block)) {
 			   if (!sizeFound) {
-				   cout << "Size block" << endl;
 				   // First block holds the size
 				   writer->decodeSizeBlock(block);
 				   sizeFound = true;
-				   cout << "After decode size block" << endl;
 				   numMapBlocks = writer->getNumMapBlocks();
-				   cout << "Found num map blocks: " << numMapBlocks << endl;
 			   } else if (sizeFound && mapBlocksFound < numMapBlocks) {
 				   // Next few blocks hold the conjugation map
-				   cout << "map block at x: " << x << " Y: " << y << endl;
-				   cout << "Before decode map block" << endl;
 				   writer->decodeNextMapBlock(block);
 				   mapBlocksFound++;
-				   cout << "decoded map block" << endl;
 			   } else {
 				   // Normal message block read
 				   bool done = writer->decodeNextMessageBlock(block, blockIndex);
