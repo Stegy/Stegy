@@ -7,10 +7,13 @@
 
 #include "MessageReader.h"
 
+#include <errno.h>
 #include <fstream>
 #include <math.h>
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace std;
 
@@ -31,7 +34,7 @@ MessageReader::MessageReader(string fileName, BlockUtility* utility) {
 	size = ftell(fpInput);
 //	input.seekg(0, ios::end);
 //	size = input.tellg();
-	int pos;
+	int pos = 0;
 	fseek(fpInput, pos, SEEK_SET);
 	fileBuffer = new unsigned char[size];
 
@@ -54,7 +57,7 @@ void MessageReader::getSizeBlock(unsigned char* result) {
 	// In first row of result block, set conjugation bit to 0, and
 	// keep remaining 7 bits
 	result[0] = (size >> 56) & 0x7F; // Shifted 7 bytes out
-	uint64_t mask = 0x00FF000000000000;
+	uint64_t mask = 0x00FF000000000000ULL;
 	uint8_t shiftAmt = 48; // 6 bytes
 	for (int i = 1; i < kBlockSize; i++) {
 		// Mask for desired byte of size and shift it to the right
@@ -85,9 +88,15 @@ void MessageReader::buildMap() {
 	for (i = 0; i < numMapBlocks - 1; i++) {
 		map[i].fullTo = kBlockSize;
 		map[i].firstRow = 0;
+		for (int j = 0; j < kBlockSize - 1; j++) {
+			map[i].rows[j] = 0;
+		}
 	}
 	// Find how much of the last map block is taken up
 	map[i].firstRow = 0;
+	for (int j = 0; j < kBlockSize - 1; j++) {
+		map[i].rows[j] = 0;
+	}
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	// Fill in remainder of last map block with message data
 	int readSize = kBlockSize - map[i].fullTo;

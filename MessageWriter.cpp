@@ -7,8 +7,11 @@
 
 #include "MessageWriter.h"
 
+#include <errno.h>
 #include <iostream>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace std;
 
@@ -98,14 +101,7 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
 		int blockIdx) {
 	if (isConjugated(blockIdx)) {
-		cout << "BEFORE:" << endl;
-		utility->printBitPlane(secretBlock);
-		cout << "complexity: " << utility->getComplexity(secretBlock) << endl;
 		utility->conjugate(secretBlock);
-		cout << "AFTER" << endl;
-		utility->printBitPlane(secretBlock);
-		cout << "complexity: " << utility->getComplexity(secretBlock) << endl;
-		cout << "Block was found conjugated, index " << blockIdx << endl;
 	}
 	for (int i = 0; i < kBlockSize && currentSize < messageSize; i++) {
 //		output.write((char*) secretBlock + i, 1);
@@ -132,19 +128,10 @@ bool MessageWriter::isConjugated(int blockIndex) {
 	int idxInBlock = blockIndex % 63;
 	// value & mask == 0 or == 1
 	if (idxInBlock < 7) {
-		cout << "block index: " << blockIndex << endl;
-		cout << "map block: " << mapBlock << endl;
-		cout << "index in block: " << idxInBlock << endl;
 		unsigned char mask = 1 << (kBlockSize - idxInBlock - 2);
-		bitset<8> x(mask);
-		bitset<8> y(map[mapBlock].firstRow);
-		cout << "Mask:" << x << endl;
-		cout << "first row: " << y << endl;
 		if ((map[mapBlock].firstRow & mask) == 0) { // Set bit in map to 1
-			cout << "found == 0" << endl;
 			return false;
 		}
-		cout << "found != 0" << endl;
 		return true;
 	} else {
 		idxInBlock -= 7;

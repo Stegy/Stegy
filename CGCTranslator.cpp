@@ -8,6 +8,7 @@
 
 #include "CGCTranslator.h"
 
+#include <bitset>
 #include <iostream>
 #include <math.h>
 

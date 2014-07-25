@@ -13,11 +13,11 @@
 #
 
 COMPILER      = -c++
-OPTIONS       = -ansi -pedantic-errors -Wall -Wall -Werror -Wextra -o
+OPTIONS       = -ansi -Wall -Wall -o
 LINKER_OPT    = -L/usr/lib -lstdc++
 OUTPUT_DIR    = bin
 
-all: bitmap_test example cgc_translator_test message_manager_test
+all: bitmap_test example cgc_translator_test message_manager_test stegy
 
 bitmap_test: bitmap_test.cpp bitmap_image.hpp
 	$(COMPILER) $(OPTIONS) $(OUTPUT_DIR)/bitmap_test bitmap_test.cpp $(LINKER_OPT)
@@ -40,11 +40,20 @@ MessageReader.o: MessageReader.cpp MessageReader.h StegoCommon.h
 MessageWriter.o: MessageWriter.cpp MessageWriter.h StegoCommon.h
 	$(COMPILER) -Wall -g -c MessageWriter.cpp
 	
-MessageManagerTest.o: MessageManagerTest.cpp MessageReader.h
+MessageManagerTest.o: MessageManagerTest.cpp
 	$(COMPILER) -Wall -g -c MessageManagerTest.cpp
 	
-message_manager_test: MessageManagerTest.o MessageReader.o MessageWriter.o
-	$(COMPILER) -g MessageReader.o MessageWriter.o MessageManagerTest.o $(LINKER_OPT) -lm -o $(OUTPUT_DIR)/MessageManagerTest
+message_manager_test: MessageManagerTest.o MessageReader.o MessageWriter.o BlockUtility.o CGCTranslator.o
+	$(COMPILER) -g MessageReader.o MessageWriter.o MessageManagerTest.o BlockUtility.o CGCTranslator.o $(LINKER_OPT) -lm -o $(OUTPUT_DIR)/MessageManagerTest
+
+BlockUtility.o: BlockUtility.cpp BlockUtility.h
+	$(COMPILER) -Wall -g -c BlockUtility.cpp
+	
+Main.o: Main.cpp 
+	$(COMPILER) -Wall -g -c Main.cpp
+
+stegy: Main.o BlockUtility.o CGCTranslator.o MessageReader.o MessageWriter.o
+	$(COMPILER) -g Main.o MessageReader.o MessageWriter.o BlockUtility.o CGCTranslator.o $(LINKER_OPT) -lm -o stegy
 
 valgrind_check:
 	valgrind --leak-check=full --show-reachable=yes --track-origins=yes -v ./bitmap_test

@@ -137,7 +137,7 @@ void verifyArguments(int argc, char* argv[])
             }
             try
             {
-                complexityTH = stof(argv[i+1]);
+                complexityTH = atof(argv[i+1]);
             }
             catch(...)
             {
@@ -436,7 +436,7 @@ void imageToCGC(bitmap_image* image) {
    unsigned char green; // Green value of pixel
    unsigned char blue; // Blue value of pixel
    CGCTranslator translator;
-   for (size_t x = 0; x <= image->width(); x++) {
+   for (size_t x = 0; x < image->width(); x++) {
 	   for (size_t y = 0; y < image->height(); y++) {
 		   image->get_pixel(x, y, red, green, blue);
 		   image->set_pixel(x, y, translator.binaryToCgc(red),
@@ -454,7 +454,7 @@ void imageToPBC(bitmap_image* image) {
    unsigned char green; // Green value of pixel
    unsigned char blue; // Blue value of pixel
    CGCTranslator translator;
-   for (size_t x = 0; x <= image->width(); x++) {
+   for (size_t x = 0; x < image->width(); x++) {
 	   for (size_t y = 0; y < image->height(); y++) {
 		   image->get_pixel(x, y, red, green, blue);
 		   image->set_pixel(x, y, translator.cgcToBinary(red),

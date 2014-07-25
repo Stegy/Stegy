@@ -164,13 +164,6 @@ void BlockUtility::printBitPlane(unsigned char * block)
         }
         printf("\n");
     }
-
-    cout << "USING BIT SETS:" << endl;
-    for (int i = 0; i < 8; i++ ) {
-    	bitset<8> x(block[i]);
-    	cout << x << endl;
-    }
-
 }
 
 // Prints out the plane of 8x8 chars
