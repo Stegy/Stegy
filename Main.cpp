@@ -272,6 +272,8 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
    // Traverse image pixels
    int width = image->width();
    int height = image->height();
+   bool done = false;
+   int tmpCount = 0;
    for (int x = 0; x <= width - kBlockSize; x += kBlockSize) {
 	   for (int y = 0; y < height - kBlockSize; y += kBlockSize) {
 		   // Get color values for 8x8 pixel blocks
@@ -302,17 +304,14 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 					   reader->getSizeBlock(block);
 					   numMapBlocks = reader->getNumMapBlocks();
 					   sizeFound = true;
+					   cout << "Size block: " << endl;
+					   utility->printBitPlane(block);
 				   }  else {
 					   // Will embed a normal message block
-					   bool done = reader->getNext(kBlockSize, block);
-					   if (done) {
-						   cout << "Done with message, size: "
-								   << reader->getSize() << endl;
-						   cout << "bitplane: " << bitPlane << endl;
-						   return true;
-					   }
+					   done = reader->getNext(kBlockSize, block);
 					   // Conjugate block if necessary, setting map value
 					   if (!utility->isComplex(block)) {
+						   cout << "Conjugated block" << endl;
 						   utility->conjugate(block);
 						   reader->setMapBit(blockIndex, true);
 					   }
@@ -320,6 +319,9 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 				   }
 				   // Modify the current block of color values to contain the
 				   // secret block
+				   cout << "Embedding message block: " << blockIndex - 1 << "at " << x << ", " << y << endl;
+				   utility->printBitPlane(block);
+				   cout << "Complexity of embedded block: " << blockIndex - 1 << " " << utility->getComplexity(block) << endl;
 				   utility->embedBitPlane(redPixelValues, block, bitPlane);
 				   // Set the color values in the 8x8 pixel block of the bitmap
 				   for (size_t i = 0; i < kBlockSize; i++) {
@@ -329,6 +331,14 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 								   greenPixelValues[i][j],
 								   bluePixelValues[i][j]);
 					   }
+				   }
+				   tmpCount++;
+				   if (done) {
+					   cout << "Done with message, size: "
+							   << reader->getSize() << endl;
+					   cout << "bitplane: " << bitPlane << endl;
+					   cout << "Embedded blocks: " << tmpCount << endl;
+					   return true;
 				   }
 			   }
 		   }
@@ -353,6 +363,8 @@ void embedMapBlocks(bitmap_image* image) {
 				x, y);
 		// Get the map block to hide
 		reader->getNextMapBlock(block);
+		cout << "Hid map block at : " << x << ", " << y << endl;
+		utility->printBitPlane(block);
 		// Hide in the reserved bit plane in the given color
 		if (mbc.color == kRed) {
 			utility->embedBitPlane(redPixelValues, block, mbc.bitPlane);
@@ -361,7 +373,7 @@ void embedMapBlocks(bitmap_image* image) {
 		} else {
 			utility->embedBitPlane(bluePixelValues, block, mbc.bitPlane);
 		}
-		utility->extractBitPlane(redPixelValues, block, mbc.bitPlane);
+//		utility->extractBitPlane(redPixelValues, block, mbc.bitPlane);
 		writePixelBlock(image, redPixelValues, greenPixelValues,
 				bluePixelValues, x, y);
 	}
@@ -481,15 +493,21 @@ bool traverseBitPlaneDecode(int bitPlane, int color, bitmap_image* image) {
 		   if (utility->isComplex(block)) {
 			   if (!sizeFound) {
 				   // First block holds the size
+				   cout << "Foudn size block: " << endl;
+				   utility->printBitPlane(block);
 				   writer->decodeSizeBlock(block);
 				   sizeFound = true;
 				   numMapBlocks = writer->getNumMapBlocks();
 			   } else if (sizeFound && mapBlocksFound < numMapBlocks) {
 				   // Next few blocks hold the conjugation map
+				   cout << "Found map block: " << endl;
+				   utility->printBitPlane(block);
 				   writer->decodeNextMapBlock(block);
 				   mapBlocksFound++;
 			   } else {
 				   // Normal message block read
+				   cout << "Found message block: " << blockIndex << " at " << x << ", " << y << endl;
+				   utility->printBitPlane(block);
 				   bool done = writer->decodeNextMessageBlock(block, blockIndex);
 				   if (done) {
 					   cout << "Finished decoding message of size "
