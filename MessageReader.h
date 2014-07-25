@@ -61,6 +61,7 @@ public:
 	void setMapBit(int blockNumber, bool value);
 	bool getNextMapBlock(unsigned char* block);
 	int getSize();
+	int getCurrentSize();
 
 };
 

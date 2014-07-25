@@ -84,8 +84,10 @@ void MessageReader::buildMap() {
 	// Initialize map block sizes
 	for (i = 0; i < numMapBlocks - 1; i++) {
 		map[i].fullTo = kBlockSize;
+		map[i].firstRow = 0;
 	}
 	// Find how much of the last map block is taken up
+	map[i].firstRow = 0;
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	// Fill in remainder of last map block with message data
 	int readSize = kBlockSize - map[i].fullTo;
@@ -144,6 +146,10 @@ bool MessageReader::getNextMapBlock(unsigned char* block) {
 	}
 	mapIndex++;
 	return (mapIndex == numMapBlocks);
+}
+
+int MessageReader::getCurrentSize() {
+	return messageIndex;
 }
 
 /**

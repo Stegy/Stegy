@@ -31,6 +31,7 @@ public:
 	bool isConjugated(int blockIndex);
 	int getNumMapBlocks();
 	int getMessageSize();
+	int getCurrentSize();
 	void closeFile();
 
 private:

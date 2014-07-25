@@ -98,8 +98,14 @@ void MessageWriter::decodeNextMapBlock(unsigned char* secretBlock) {
 bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
 		int blockIdx) {
 	if (isConjugated(blockIdx)) {
-		cout << "Block was found conjugated, index " << blockIdx << endl;
+		cout << "BEFORE:" << endl;
+		utility->printBitPlane(secretBlock);
+		cout << "complexity: " << utility->getComplexity(secretBlock) << endl;
 		utility->conjugate(secretBlock);
+		cout << "AFTER" << endl;
+		utility->printBitPlane(secretBlock);
+		cout << "complexity: " << utility->getComplexity(secretBlock) << endl;
+		cout << "Block was found conjugated, index " << blockIdx << endl;
 	}
 	for (int i = 0; i < kBlockSize && currentSize < messageSize; i++) {
 //		output.write((char*) secretBlock + i, 1);
@@ -110,6 +116,10 @@ bool MessageWriter::decodeNextMessageBlock(unsigned char* secretBlock,
 		return true;
 	}
 	return false;
+}
+
+int MessageWriter::getCurrentSize() {
+	return currentSize;
 }
 
 bool MessageWriter::conjBitSet(unsigned char firstByte) {
@@ -123,6 +133,7 @@ bool MessageWriter::isConjugated(int blockIndex) {
 	// value & mask == 0 or == 1
 	if (idxInBlock < 7) {
 		cout << "block index: " << blockIndex << endl;
+		cout << "map block: " << mapBlock << endl;
 		cout << "index in block: " << idxInBlock << endl;
 		unsigned char mask = 1 << (kBlockSize - idxInBlock - 2);
 		bitset<8> x(mask);

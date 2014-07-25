@@ -146,6 +146,7 @@ void BlockUtility::conjugate(unsigned char * block)
     {
         block[x] = checkerBoard[x]^block[x];
     }
+    cout << "Actually conjugated.." << endl;
 }
 
 
