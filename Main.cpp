@@ -121,7 +121,7 @@ void verifyArguments(int argc, char* argv[])
         {
             analysisFlag = true;
         }
-        else if (strcmp(argv[i], "-complex")) {
+        else if (strcmp(argv[i], "-complex") == 0) {
         	complexValsFlag = true;
         }
         else if(strcmp(argv[i],"-e") == 0)
@@ -603,9 +603,9 @@ void traverseForAnalysis(int bitPlane, int color, bitmap_image* image) {
 			   // Print byte values
 			   for (size_t i = 0; i < kBlockSize; i++) {
 				   for (size_t j = 0; j < kBlockSize; j++) {
-					   cout << redPixelValues[i][j] << ",";
-					   cout << greenPixelValues[i][j] << ",";
-					   cout << bluePixelValues[i][j] << endl;
+					   cout << (int) redPixelValues[i][j] << ",";
+					   cout << (int) greenPixelValues[i][j] << ",";
+					   cout << (int) bluePixelValues[i][j] << endl;
 				   }
 			   }
 		   }

@@ -98,7 +98,7 @@ int main() {
 	}
 
 	for (int i = 0; i < ceil((double) testRead.getSize() / 8); i++) {
-		testRead.getNext(8, testBlock);
+		testRead.getNext(testBlock);
 		cout << "TEST BLOCK: " << testBlock[0] << endl;
 		for (int i = 0; i < 8; i++ ) {
 			cout << "next byte: " << testBlock[i] << endl;
