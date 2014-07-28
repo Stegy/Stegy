@@ -34,20 +34,20 @@ bool assertEquals(string testName, string msg, unsigned char expected,
 }
 
 void testCgcToBinary(CGCTranslator tester) {
-	unsigned char res = tester.cgcToBinary(CGC1);
+	unsigned char res = tester.cgcToPbc(CGC1);
 	bool passed = true;
 	if (!assertEquals("cgcToBinary", "CGC1", BIN1, res)) {
 		passed = false;
 	}
-	res = tester.cgcToBinary(CGC2);
+	res = tester.cgcToPbc(CGC2);
 	if (!assertEquals("cgcToBinary", "CGC2", BIN2, res)) {
 		passed = false;
 	}
-	res = tester.cgcToBinary(CGC3);
+	res = tester.cgcToPbc(CGC3);
 	if (!assertEquals("cgcToBinary", "CGC3", BIN3, res)) {
 		passed = false;
 	}
-	res = tester.cgcToBinary(CGC4);
+	res = tester.cgcToPbc(CGC4);
 	if (!assertEquals("cgcToBinary", "CGC4", BIN4, res)) {
 		passed = false;
 	}
@@ -57,20 +57,20 @@ void testCgcToBinary(CGCTranslator tester) {
 }
 
 void testBinaryToCgc(CGCTranslator tester) {
-	unsigned char res = tester.binaryToCgc(BIN1);
+	unsigned char res = tester.pbcToCgc(BIN1);
 	bool passed = true;
 	if (!assertEquals("binaryToCgc", "BIN1", CGC1, res)) {
 		passed = false;
 	}
-	res = tester.binaryToCgc(BIN2);
+	res = tester.pbcToCgc(BIN2);
 	if (!assertEquals("binaryToCgc", "BIN2", CGC2, res)) {
 		passed = false;
 	}
-	res = tester.binaryToCgc(BIN3);
+	res = tester.pbcToCgc(BIN3);
 	if (!assertEquals("binaryToCgc", "BIN3", CGC3, res)) {
 		passed = false;
 	}
-	res = tester.binaryToCgc(BIN4);
+	res = tester.pbcToCgc(BIN4);
 	if (!assertEquals("binaryToCgc", "BIN4", CGC4, res)) {
 		passed = false;
 	}
@@ -109,8 +109,8 @@ void buildGrayCode()
 
 int main() {
 	CGCTranslator tester;
-	tester.printGrayCode();
-	tester.printBinaryCode();
+	tester.printCGC();
+	tester.printPBC();
 	testCgcToBinary(tester);
 	testBinaryToCgc(tester);
 }

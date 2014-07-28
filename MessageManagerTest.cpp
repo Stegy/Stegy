@@ -104,10 +104,10 @@ int main() {
 			cout << "next byte: " << testBlock[i] << endl;
 		}
 				for (int j = 0; j < 8; j++ ) {
-					testBlockCGC[j] = translator.cgcToBinary(testBlock[j]);
+					testBlockCGC[j] = translator.cgcToPbc(testBlock[j]);
 				}
 				for (int j = 0; j < 8; j++) {
-					testBlock[j] = translator.binaryToCgc(testBlockCGC[j]);
+					testBlock[j] = translator.pbcToCgc(testBlockCGC[j]);
 				}
 		testWrite.decodeNextMessageBlock(testBlock, 0);
 	}

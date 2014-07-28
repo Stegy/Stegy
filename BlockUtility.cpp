@@ -12,10 +12,24 @@
 
 using namespace std;
 
-// BlockUtility constructor
 BlockUtility::BlockUtility()
 {
-    threshold = .6; //Sets the default threshold
+    threshold = .3;
+}
+
+// Returns a checkerboard pattern xored with the 8 unsigned chars
+void BlockUtility::conjugate(unsigned char * block)
+{
+    unsigned char checkerBoard[] = {170,85,170,85,170,85,170,85};
+    int x;
+    int y;
+
+    //Make conjugated array
+    for(x=0;x<8;x++)
+    {
+        block[x] = checkerBoard[x]^block[x];
+    }
+    cout << "Actually conjugated.." << endl;
 }
 
 // Sets the Threshold to check for complexity
@@ -44,7 +58,8 @@ float BlockUtility::getComplexity(unsigned char * block)
     unsigned int totalChanges = 0;
     unsigned int maxTotalChanges=0;
     float complexity;
-    
+    int x;
+    int y;
     
     //checking for the number of changes
     for(x = 1; x < 8; x++)//in the x direction
@@ -136,24 +151,14 @@ bool BlockUtility::isComplex(unsigned char * block)
 //    }
 }
 
-// Returns a checkerboard pattern xored with the 8 unsigned chars
-void BlockUtility::conjugate(unsigned char * block)
-{
-    unsigned char checkerBoard[] = {170,85,170,85,170,85,170,85};
-    
-    //Make conjugated array
-    for(x=0;x<8;x++)
-    {
-        block[x] = checkerBoard[x]^block[x];
-    }
-    cout << "Actually conjugated.." << endl;
-}
-
 
 // Prints out the array of 8 chars into a bit plane 1/0 representation
 void BlockUtility::printBitPlane(unsigned char * block)
 {
     unsigned char byte;
+    int x;
+    int y;
+
     //Print out bits of the char array
     for(x=0;x<8;x++)
     {

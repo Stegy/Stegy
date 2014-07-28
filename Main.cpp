@@ -15,6 +15,7 @@ using namespace std;
 
 /* Command line arguments */
 bool analysisFlag = false;
+bool complexValsFlag = false;
 bool encodeFlag = false;
 bool decodeFlag = false;
 bool redFlag = false;
@@ -119,6 +120,9 @@ void verifyArguments(int argc, char* argv[])
         if(strcmp(argv[i],"-a") == 0)
         {
             analysisFlag = true;
+        }
+        else if (strcmp(argv[i], "-complex")) {
+        	complexValsFlag = true;
         }
         else if(strcmp(argv[i],"-e") == 0)
         {
@@ -251,7 +255,6 @@ void embed() {
 
    // Open message file
    reader = new MessageReader(messageFileName, utility);
-   // TODO handle errors
    numMapBlocks = reader->getNumMapBlocks(); // Number of map blocks needed
 
    // Translate cover image from BPC to CGC
@@ -323,7 +326,7 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 					   sizeFound = true;
 				   } else {
 					   // Get and embed a normal message block, check if done
-					   done = reader->getNext(kBlockSize, block);
+					   done = reader->getNext(block);
 					   // Conjugate block if necessary, setting map value
 					   if (!utility->isComplex(block)) {
 						   // TODO temp
@@ -439,8 +442,8 @@ void imageToCGC(bitmap_image* image) {
    for (size_t x = 0; x < image->width(); x++) {
 	   for (size_t y = 0; y < image->height(); y++) {
 		   image->get_pixel(x, y, red, green, blue);
-		   image->set_pixel(x, y, translator.binaryToCgc(red),
-				   translator.binaryToCgc(green), translator.binaryToCgc(blue));
+		   image->set_pixel(x, y, translator.pbcToCgc(red),
+				   translator.pbcToCgc(green), translator.pbcToCgc(blue));
 	   }
    }
 }
@@ -457,8 +460,8 @@ void imageToPBC(bitmap_image* image) {
    for (size_t x = 0; x < image->width(); x++) {
 	   for (size_t y = 0; y < image->height(); y++) {
 		   image->get_pixel(x, y, red, green, blue);
-		   image->set_pixel(x, y, translator.cgcToBinary(red),
-				   translator.cgcToBinary(green), translator.cgcToBinary(blue));
+		   image->set_pixel(x, y, translator.cgcToPbc(red),
+				   translator.cgcToPbc(green), translator.cgcToPbc(blue));
 	   }
    }
 }
@@ -596,6 +599,16 @@ void traverseForAnalysis(int bitPlane, int color, bitmap_image* image) {
 		   // Get color values for 8x8 pixel blocks
 		   readPixelBlock(image, redPixelValues, greenPixelValues,
 				   bluePixelValues, x, y);
+		   if (!complexValsFlag) {
+			   // Print byte values
+			   for (size_t i = 0; i < kBlockSize; i++) {
+				   for (size_t j = 0; j < kBlockSize; j++) {
+					   cout << redPixelValues[i][j] << ",";
+					   cout << greenPixelValues[i][j] << ",";
+					   cout << bluePixelValues[i][j] << endl;
+				   }
+			   }
+		   }
 		   // Get desired bit plane
 		   if (color == kRed) {
 			   utility->extractBitPlane(redPixelValues, block, bitPlane);
@@ -604,8 +617,10 @@ void traverseForAnalysis(int bitPlane, int color, bitmap_image* image) {
 		   } else {
 			   utility->extractBitPlane(bluePixelValues, block, bitPlane);
 		   }
-		   // Print out complexity of block
-		   cout << utility->getComplexity(block) << endl;
+		   if (complexValsFlag) {
+			   // Print complexity of block
+			   cout << utility->getComplexity(block) << endl;
+		   }
 		   // Count complex blocks
 		   if (utility->isComplex(block)) {
 			   complexBlockCount++;

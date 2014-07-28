@@ -2,7 +2,7 @@
  * cgc_translation.cpp
  *
  *  Created on: Jun 25, 2014
- *      Author: Rebecca
+ *      Author: Rebecca Strautman
  */
 
 
@@ -14,9 +14,6 @@
 
 using namespace std;
 
-/**
- * Constructor initializes the arrays of CGC and binary used for translation.
- */
 CGCTranslator::CGCTranslator() {
 	// Initialize arrays to 0s
 	for (int i = 0; i < NUM_CODES; i++) {
@@ -30,9 +27,30 @@ CGCTranslator::CGCTranslator() {
 	}
 }
 
-/**
- * Helper method recursively builds the CGC of the given number of bits.
- */
+unsigned char CGCTranslator::cgcToPbc(unsigned char byteIn) {
+	return cgcIndexedBin[byteIn];
+}
+
+unsigned char CGCTranslator::pbcToCgc(unsigned char byteIn) {
+	return binIndexedCgc[byteIn];
+}
+
+void CGCTranslator::printCGC() {
+	cout << "Gray code generated: " << endl;
+	for (int i = 0; i < NUM_CODES; i++ ) {
+		std::bitset<8> x(binIndexedCgc[i]);
+		cout << i << ": " << x << endl;
+	}
+}
+
+void CGCTranslator::printPBC() {
+	cout << "Binary code (indexed by CGC):" << endl;
+	for (int i = 0; i < NUM_CODES; i++ ) {
+		std::bitset<8> x(cgcIndexedBin[i]);
+		cout << i << ": " << x << endl;
+	}
+}
+
 void CGCTranslator::genNBitGrayCode(int n) {
 	if (n == 0) {
 		return;
@@ -49,40 +67,4 @@ void CGCTranslator::genNBitGrayCode(int n) {
 	for (j = 0; j < prevSize; j++) {
 		binIndexedCgc[j + prevSize] = binIndexedCgc[j + prevSize] | prevSize;
 	}
-}
-
-/**
- * Prints the Gray code generated to stdout.
- */
-void CGCTranslator::printGrayCode() {
-	cout << "Gray code generated: " << endl;
-	for (int i = 0; i < NUM_CODES; i++ ) {
-		std::bitset<8> x(binIndexedCgc[i]);
-		cout << i << ": " << x << endl;
-	}
-}
-
-/**
- * Prints binary code indexed by CGC to stdout.
- */
-void CGCTranslator::printBinaryCode() {
-	cout << "Binary code (indexed by CGC):" << endl;
-	for (int i = 0; i < NUM_CODES; i++ ) {
-		std::bitset<8> x(cgcIndexedBin[i]);
-		cout << i << ": " << x << endl;
-	}
-}
-
-/**
- * Translates the given byte from CGC to binary.
- */
-unsigned char CGCTranslator::cgcToBinary(unsigned char byteIn) {
-	return cgcIndexedBin[byteIn];
-}
-
-/**
- * Translates the given byte from binary to CGC.
- */
-unsigned char CGCTranslator::binaryToCgc(unsigned char byteIn) {
-	return binIndexedCgc[byteIn];
 }
