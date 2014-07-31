@@ -15,7 +15,6 @@ using namespace std;
 
 /* Command line arguments */
 bool analysisFlag = false;
-bool complexValsFlag = false;
 bool encodeFlag = false;
 bool decodeFlag = false;
 bool redFlag = false;
@@ -130,9 +129,6 @@ void verifyArguments(int argc, char* argv[])
         if(strcmp(argv[i],"-a") == 0)
         {
             analysisFlag = true;
-        }
-        else if (strcmp(argv[i], "-complex") == 0) {
-        	complexValsFlag = true;
         }
         else if(strcmp(argv[i],"-e") == 0)
         {
@@ -613,21 +609,12 @@ void performAnalysis() {
 void traverseForAnalysis(int bitPlane, int color, bitmap_image* image) {
    int width = image->width();
    int height = image->height();
+   cout << "Bit plane: " << bitPlane << " Color: " << color << endl;
    for (int x = 0; x <= width - kBlockSize; x += kBlockSize) {
 	   for (int y = 0; y < height - kBlockSize; y += kBlockSize) {
 		   // Get color values for 8x8 pixel blocks
 		   readPixelBlock(image, redPixelValues, greenPixelValues,
 				   bluePixelValues, x, y);
-		   if (!complexValsFlag) {
-			   // Print byte values
-			   for (size_t i = 0; i < kBlockSize; i++) {
-				   for (size_t j = 0; j < kBlockSize; j++) {
-					   cout << (int) redPixelValues[i][j] << ",";
-					   cout << (int) greenPixelValues[i][j] << ",";
-					   cout << (int) bluePixelValues[i][j] << endl;
-				   }
-			   }
-		   }
 		   // Get desired bit plane
 		   if (color == kRed) {
 			   utility->extractBitPlane(redPixelValues, block, bitPlane);
@@ -636,10 +623,8 @@ void traverseForAnalysis(int bitPlane, int color, bitmap_image* image) {
 		   } else {
 			   utility->extractBitPlane(bluePixelValues, block, bitPlane);
 		   }
-		   if (complexValsFlag) {
-			   // Print complexity of block
-			   cout << utility->getComplexity(block) << endl;
-		   }
+		   // Print complexity of block
+		   cout << utility->getComplexity(block) << endl;
 		   // Count complex blocks
 		   if (utility->isComplex(block)) {
 			   complexBlockCount++;
