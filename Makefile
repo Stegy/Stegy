@@ -17,7 +17,7 @@ OPTIONS       = -ansi -Wall -Wall -o
 LINKER_OPT    = -L/usr/lib -lstdc++
 OUTPUT_DIR    = bin
 
-all: bitmap_test example cgc_translator_test message_manager_test stegy
+all: stegy
 
 bitmap_test: bitmap_test.cpp bitmap_image.hpp
 	$(COMPILER) $(OPTIONS) $(OUTPUT_DIR)/bitmap_test bitmap_test.cpp $(LINKER_OPT)

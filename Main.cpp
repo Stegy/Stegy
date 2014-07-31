@@ -29,12 +29,12 @@ string stegoFileName = "";
 string outputFileName = "";
 
 /* Global variables */
-BlockUtility* utility; // Used to test complexity and conjugate blocks
-MessageReader* reader; // Used to read secret message for embedding
-MessageWriter* writer; // Used to write secret message when decoding
-CGCTranslator* cgc; // Translates bytes between PBC and CGC
+BlockUtility* utility = NULL; // Used to test complexity and conjugate blocks
+MessageReader* reader = NULL; // Used to read secret message for embedding
+MessageWriter* writer = NULL; // Used to write secret message when decoding
+CGCTranslator* cgc = NULL; // Translates bytes between PBC and CGC
 
-int blockIndex = 0; // Current block index for embedding/decoding
+int blockIndex = 0; // Current index of message block for embedding/decoding
 // Whether the message size block has been embedded/decoded
 bool sizeFound = false;
 // Total number of conjugation map blocks associated with secret message
@@ -62,10 +62,10 @@ struct MapBlockCoords {
 };
 vector<MapBlockCoords> mapBlockCoords; // Holds info for all map blocks
 
-/* Methods used in Main */
+/* Methods used in Main (see comments below) */
 void decode();
-void embedMapBlocks(bitmap_image* image);
 void embed();
+void embedMapBlocks(bitmap_image* image);
 void imageToCGC(bitmap_image* image);
 void imageToPBC(bitmap_image* image);
 void performAnalysis();
@@ -81,7 +81,7 @@ void writePixelBlock(bitmap_image* image, unsigned char redValues[8][8],
 		int startX, int startY);
 
 
-/* Main method */
+/* Main method - overall program control */
 int main(int argc, char* argv[])
 {
     verifyArguments(argc, argv);
@@ -95,6 +95,16 @@ int main(int argc, char* argv[])
     } else { // Analysis
     	performAnalysis();
     }
+    delete utility;
+    if (reader != NULL) {
+    	delete reader;
+    }
+    if (writer != NULL) {
+    	delete writer;
+    }
+    if (cgc != NULL) {
+    	delete cgc;
+    }
 }
 
 /**
@@ -103,15 +113,15 @@ int main(int argc, char* argv[])
  */
 void verifyArguments(int argc, char* argv[])
 {
-    string usage =  "Stegy -a -c alpha  < -red | -green | -blue | -all >"
-    		"-cover CoverImage\nStegy -e -c alpha  < -red | -green | -blue |"
-    		"-all > -cover CoverImage -messgae Message -o OutputFileName\nStegy"
-    		"-d -c alpha  < -red | -green | -blue | -all > -stego StegoImage"
-    		"-o OutputFileName\n";
+    string usage =  "./stegy -a -c alpha  < -red | -green | -blue | -all >"
+    		"-cover CoverImage\n./stegy -e -c alpha  < -red | -green | -blue | "
+    		"-all > -cover CoverImage -message Message -o OutputFileName\n"
+    		"./stegy -d -c alpha  < -red | -green | -blue | -all > -stego "
+    		"StegoImage -o OutputFileName\n";
 
     if(argc < 5)
     {
-        cout << "Usage : " << usage << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
     
@@ -136,7 +146,7 @@ void verifyArguments(int argc, char* argv[])
         {
             if(i+1 >= argc)
             {
-                cout << "Usage : " << usage << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             try
@@ -146,6 +156,7 @@ void verifyArguments(int argc, char* argv[])
             catch(...)
             {
                 cout << "Invalid Complexity : " << argv[i+1] << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             i++;
@@ -170,7 +181,7 @@ void verifyArguments(int argc, char* argv[])
         {
             if(i+1 >= argc)
             {
-                cout << "Usage : " << usage << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             coverFileName = argv[i+1];
@@ -180,17 +191,17 @@ void verifyArguments(int argc, char* argv[])
         {
             if(i+1 >= argc)
             {
-                cout << "Usage : " << usage << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             stegoFileName = argv[i+1];
             i++;
         }
-        else if(strcmp(argv[i],"-message") == 0)
+        else if(strcmp(argv[i], "-message") == 0)
         {
             if(i+1 >= argc)
             {
-                cout << "Usage : " << usage << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             messageFileName = argv[i+1];
@@ -200,7 +211,7 @@ void verifyArguments(int argc, char* argv[])
         {
             if(i+1 >= argc)
             {
-                cout << "Usage : " << usage << endl;
+                cout << "Usage: " << usage << endl;
                 exit(1);
             }
             outputFileName = argv[i+1];
@@ -210,32 +221,47 @@ void verifyArguments(int argc, char* argv[])
     
     if(!(analysisFlag || encodeFlag || decodeFlag))
     {
-        cout << "Usage : " << usage << endl;
+    	cout << "Mode must be one of: -a (analysis), -e (encode) or "
+    			"-d (decode)" << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
     if(!(redFlag || blueFlag || greenFlag || allFlag))
     {
-        cout << "Usage : " << usage << endl;
+    	cout << "Must include a color option: -red, -green, -blue, or -all"
+    			<< endl;
+        cout << "Usage: " << usage << endl;
+        exit(1);
+    }
+    if (complexityTH == -1) {
+    	cout << "Complexity value is required." << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
     if(complexityTH > 0.5 || complexityTH < 0)
     {
-        cout << "Complexity Threshold must be between 0 and 0.5. Found value : " << complexityTH << endl;
+        cout << "Complexity Threshold must be between 0 and 0.5. Found value : "
+        		<< complexityTH << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
     if(analysisFlag && coverFileName.empty())
     {
-        cout << "Need cover file name" << endl;
+        cout << "Need file for analysis: (-cover <filename>)" << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
-    if(encodeFlag && ( coverFileName.empty() || messageFileName.empty() || outputFileName.empty() ))
+    if(encodeFlag && ( coverFileName.empty() || messageFileName.empty()
+    		|| outputFileName.empty() ))
     {
-        cout << "Need proper file names\n"<< usage << endl;
+        cout << "Need file names for cover image, message, and output" << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
     if(decodeFlag && ( stegoFileName.empty() || outputFileName.empty() ))
     {
-        cout << "Need proper file names\n"<< usage << endl;
+        cout << "Need file names for stego image and output" << endl;
+        cout << "Usage: " << usage << endl;
         exit(1);
     }
 }
@@ -244,7 +270,7 @@ void verifyArguments(int argc, char* argv[])
  * Control for embedding the message.
  */
 void embed() {
-	// Open bitmap file for cover image
+	// Open bitmap file for cover image - Partow library code
    bitmap_image cover(coverFileName);
    if (!cover)
    {
@@ -267,10 +293,10 @@ void embed() {
 	   if (redFlag || allFlag) {
 		   done = traverseBitPlaneEmbed(i, kRed, &cover);
 	   }
-	   if (greenFlag || allFlag) {
+	   if ((greenFlag || allFlag) && !done) {
 		   done = traverseBitPlaneEmbed(i, kGreen, &cover);
 	   }
-	   if (blueFlag || allFlag) {
+	   if ((blueFlag || allFlag) && !done) {
 		   done = traverseBitPlaneEmbed(i, kBlue, &cover);
 	   }
    }
@@ -329,9 +355,6 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
 					   done = reader->getNext(block);
 					   // Conjugate block if necessary, setting map value
 					   if (!utility->isComplex(block)) {
-						   // TODO temp
-						   cout << "Found not complex block " << blockIndex << endl;
-						   cout << "With complexity " << utility->getComplexity(block) << endl;
 						   utility->conjugate(block);
 						   reader->setMapBit(blockIndex, true);
 					   }
@@ -368,7 +391,7 @@ bool traverseBitPlaneEmbed(int bitPlane, int color, bitmap_image* image) {
  */
 void embedMapBlocks(bitmap_image* image) {
 	// Iterate through all map block coordinates saved
-	for (int i = 0; i < mapBlockCoords.size(); i++) {
+	for (uint i = 0; i < mapBlockCoords.size(); i++) {
 		MapBlockCoords mbc = mapBlockCoords[i];
 		int x = mbc.pixelCorner.first;
 		int y = mbc.pixelCorner.second;
@@ -377,9 +400,6 @@ void embedMapBlocks(bitmap_image* image) {
 				x, y);
 		// Get the map block to hide
 		reader->getNextMapBlock(block);
-		// TODO temp
-		cout << "Map block " << i << endl;
-		utility->printBitPlane(block);
 		// Hide in the reserved bit plane in the given color
 		if (mbc.color == kRed) {
 			utility->embedBitPlane(redPixelValues, block, mbc.bitPlane);
@@ -484,7 +504,6 @@ void decode() {
 
    // Open output file for writing message
    writer = new MessageWriter(outputFileName, utility);
-   // TODO check for errors
 
    // Traverse bit planes from lowest to highest, in desired colors,
    // and extract message
@@ -493,10 +512,10 @@ void decode() {
 	   if (redFlag || allFlag) {
 		   done = traverseBitPlaneDecode(i, kRed, &stego);
 	   }
-	   if (greenFlag || allFlag) {
+	   if ((greenFlag || allFlag) && !done) {
 		   done = traverseBitPlaneDecode(i, kGreen, &stego);
 	   }
-	   if (blueFlag || allFlag) {
+	   if ((blueFlag || allFlag) && !done) {
 		   done = traverseBitPlaneDecode(i, kBlue, &stego);
 	   }
    }

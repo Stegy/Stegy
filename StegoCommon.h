@@ -9,7 +9,9 @@
 
 #pragma once
 
-const int kBlockSize = 8; // Block size in bits (using 8x8 blocks)
+#include <stdint.h>
+
+const uint8_t kBlockSize = 8; // Block size in bits (using 8x8 blocks)
 
 /**
  * MapBlock - represents an 8x8 block of the conjugation map

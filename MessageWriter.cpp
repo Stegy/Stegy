@@ -88,14 +88,14 @@ int MessageWriter::decodeSizeBlock(unsigned char* sizeBlock) {
 		size += (sizeBlock[i] << shiftAmt);
 		shiftAmt -= 8;
 	}
+	// Set variables and construct map
+	messageSize = size;
 	// Check for bad size
 	if (messageSize < 0) {
 		cout << "Invalid stego image - bad message size read: "
 				<< messageSize << endl;
 		exit(1);
 	}
-	// Set variables and construct map
-	messageSize = size;
 	setUpMapBlocks(messageSize);
 	return messageSize;
 }

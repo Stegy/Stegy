@@ -100,9 +100,9 @@ private:
 	unsigned char* fileBuffer; // Contains the message file in memory
 	FILE* fpInput; // File pointer to read message file
 	MapBlock* map; // Array of map blocks for conjugation map
-	int mapIndex; // The current map block index
-	int messageIndex; // The current index in the file buffer
-	int numMapBlocks; // Number of map blocks needed
+	uint64_t mapIndex; // The current map block index
+	uint64_t messageIndex; // The current index in the file buffer
+	uint64_t numMapBlocks; // Number of map blocks needed
 	uint64_t size; // Size of message file
 	BlockUtility* utility; // Contains functions related to complexity
 

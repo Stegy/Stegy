@@ -51,7 +51,7 @@ int MessageReader::getCurrentSize() {
 }
 
 bool MessageReader::getNext(unsigned char* readBuffer) {
-	for (int i = 0; i < kBlockSize && messageIndex < size; i++) {
+	for (uint i = 0; i < kBlockSize && messageIndex < size; i++) {
 		readBuffer[i] = fileBuffer[messageIndex++];
 	}
 	return (messageIndex == size);
@@ -131,7 +131,7 @@ void MessageReader::buildMap() {
 	// Number of map blocks needed
 	numMapBlocks = ceil((double) mapSize / 63);
 	map = new MapBlock[numMapBlocks];
-	int i;
+	uint64_t i;
 	// Initialize map block sizes
 	for (i = 0; i < numMapBlocks - 1; i++) {
 		map[i].fullTo = kBlockSize;
@@ -147,9 +147,9 @@ void MessageReader::buildMap() {
 	// Determine how much of last block is used for map
 	map[i].fullTo = ceil((double) (mapSize % 63) / 8);
 	// Fill in remainder of last map block with message data
-	int readSize = kBlockSize - map[i].fullTo;
+	uint64_t readSize = kBlockSize - map[i].fullTo;
 	if (readSize > 0) {
-		int readIdx;
+		uint readIdx;
 		for (readIdx = 0; readIdx < readSize && messageIndex < size;
 				readIdx++) {
 			map[i].rows[map[i].fullTo - 1 + readIdx]
