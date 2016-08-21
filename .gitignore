@@ -22,3 +22,7 @@
 *.x86_64
 *.hex
 bin/*
+
+stegy
+
+test.bmp
