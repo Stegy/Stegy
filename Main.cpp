@@ -112,11 +112,11 @@ int main(int argc, char* argv[])
  */
 void verifyArguments(int argc, char* argv[])
 {
-    string usage =  "./stegy -a -c alpha  < -red | -green | -blue | -all >"
-    		"-cover CoverImage\n./stegy -e -c alpha  < -red | -green | -blue | "
-    		"-all > -cover CoverImage -message Message -o OutputFileName\n"
-    		"./stegy -d -c alpha  < -red | -green | -blue | -all > -stego "
-    		"StegoImage -o OutputFileName\n";
+    string usage =  "\nstegy -a -c alpha  < -red | -green | -blue | -all > "
+    		"-cover CoverImage -depth Depth\nstegy -e -c alpha  < -red | -green | -blue | "
+    		"-all > -cover CoverImage -depth Depth -message Message -o OutputFileName\n"
+    		"stegy -d -c alpha  < -red | -green | -blue | -all > -stego "
+    		"StegoImage -depth Depth -o OutputFileName\n";
 
     if(argc < 5)
     {
