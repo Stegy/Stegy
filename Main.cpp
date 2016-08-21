@@ -22,6 +22,7 @@ bool greenFlag = false;
 bool blueFlag = false;
 bool allFlag = false;
 float complexityTH = -1.0;
+int colorDepth = 24;
 string coverFileName = "";
 string messageFileName = "";
 string stegoFileName = "";
@@ -181,6 +182,25 @@ void verifyArguments(int argc, char* argv[])
                 exit(1);
             }
             coverFileName = argv[i+1];
+            i++;
+        }
+	else if(strcmp(argv[i],"-depth") == 0)
+        {
+            if(i+1 >= argc)
+            {
+                cout << "Usage: " << usage << endl;
+                exit(1);
+            }
+            try
+            {
+                colorDepth = atoi(argv[i+1]);
+            }
+            catch(...)
+            {
+                cout << "Invalid Color Depth : " << argv[i+1] << endl;
+                cout << "Usage: " << usage << endl;
+                exit(1);
+            }
             i++;
         }
         else if(strcmp(argv[i],"-stego") == 0)
